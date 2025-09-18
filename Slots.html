@@ -391,9 +391,10 @@
             position: sticky;
             bottom: 0;
             display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
             gap: var(--space-sm);
             padding-top: var(--space-sm);
+            align-items: stretch;
         }
 
         .action-button {
@@ -426,6 +427,69 @@
             background: rgba(255, 255, 255, 0.12);
             color: rgba(255, 255, 255, 0.4);
             box-shadow: none;
+        }
+
+        .action-button.secondary {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+        }
+
+        .action-button.secondary:not(:disabled):hover {
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28);
+        }
+
+        .action-button.secondary.active {
+            background: linear-gradient(135deg, var(--accent), var(--primary));
+            color: #130722;
+            box-shadow: 0 16px 30px rgba(0, 231, 255, 0.25);
+        }
+
+        .auto-spin-control {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-xs);
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-sm);
+            padding: 0.65rem 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        .auto-spin-label {
+            font-size: 0.75rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        #auto-spin-speed {
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            padding: 0.4rem 0.5rem;
+            background: rgba(0, 0, 0, 0.25);
+            color: var(--text);
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            cursor: pointer;
+        }
+
+        #auto-spin-speed:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
+        }
+
+        .card.joker-disabled {
+            opacity: 0.55;
+            position: relative;
+        }
+
+        .card-desc.boss-note {
+            display: block;
+            margin-top: 0.35rem;
+            font-weight: 600;
+            color: var(--gold);
+            letter-spacing: 0.03em;
         }
 
         .modal {
@@ -699,7 +763,15 @@
 
         <footer id="action-bar">
             <button id="draw-button" class="action-button" type="button">Spin Reels</button>
-            <button id="play-button" class="action-button" type="button" hidden>Auto Play</button>
+            <button id="auto-spin-button" class="action-button secondary" type="button">Start Auto Spin</button>
+            <label class="auto-spin-control">
+                <span class="auto-spin-label">Auto Speed</span>
+                <select id="auto-spin-speed" aria-label="Auto spin speed">
+                    <option value="slow">Slow</option>
+                    <option value="normal" selected>Normal</option>
+                    <option value="fast">Fast</option>
+                </select>
+            </label>
         </footer>
     </div>
 
@@ -709,11 +781,12 @@
             <p>Press <strong>Spin Reels</strong> to let the slot machine handle the hand for you. Behind the scenes it draws five cards and secretly keeps the best combo.</p>
             <p>The selection chip above the slot machine lets you know when the reels are spinning and when you're ready for the next blind.</p>
             <p>After each blind you survive, visit the shop to add new symbols or jokers to your build. Jokers provide powerful bonuses every hand.</p>
-            <p>Every third blind is a <strong>Boss Blind</strong> with tougher targets. Beat them all to finish the run. Defeating the final boss unlocks the <strong>Nova Cascade</strong> machine, packed with bonus games and free-spin combos.</p>
+            <p>Every few blinds you will face a <strong>Boss Blind</strong> with extra hazards. The boss jams one reel, reducing your payout, and disables one of your jokers for that round. Beat them all to finish the run. Defeating the final boss unlocks the <strong>Nova Cascade</strong> machine, packed with bonus games and free-spin combos.</p>
             <p>The joker panel tracks every joker you've ever recruited, so chase new synergies and fill out your collection.</p>
             <ul>
                 <li>Tap <strong>Spin Reels</strong> to spend a draw and let the machine work.</li>
                 <li>The machine secretly evaluates five cards and automatically keeps the best three for you.</li>
+                <li>Use <strong>Auto Spin</strong> to keep the machine playing hands on its own. Adjust the speed from the action bar to match your comfort level.</li>
                 <li>Watch the payline to see what the reels delivered.</li>
                 <li>Reach the target score before your draws run out to move on.</li>
             </ul>
@@ -785,7 +858,8 @@
             paylineInfo: document.getElementById('payline-info'),
             messageBar: document.getElementById('message-bar'),
             drawButton: document.getElementById('draw-button'),
-            playButton: document.getElementById('play-button'),
+            autoSpinButton: document.getElementById('auto-spin-button'),
+            autoSpinSpeed: document.getElementById('auto-spin-speed'),
             helpButton: document.getElementById('help-button'),
             helpModal: document.getElementById('help-modal'),
             closeHelp: document.getElementById('close-help'),
@@ -903,11 +977,13 @@
                     { score: 150, draws: 9, type: 'standard', title: 'Main Floor' },
                     { score: 260, draws: 9, type: 'boss', title: 'Pit Boss Pike' },
                     { score: 380, draws: 8, type: 'standard', title: 'Vault Stacks' },
-                    { score: 540, draws: 8, type: 'standard', title: 'Glitter Row' },
-                    { score: 720, draws: 8, type: 'boss', title: 'High Roller Duel' },
-                    { score: 900, draws: 7, type: 'standard', title: 'Showroom Finale' },
-                    { score: 1100, draws: 7, type: 'standard', title: 'Jackpot Parade' },
-                    { score: 1400, draws: 7, type: 'boss', title: 'Vault Guardian' },
+                    { score: 540, draws: 8, type: 'boss', title: 'Security Squeeze' },
+                    { score: 700, draws: 8, type: 'standard', title: 'Glitter Row' },
+                    { score: 880, draws: 7, type: 'boss', title: 'High Roller Duel' },
+                    { score: 1080, draws: 7, type: 'standard', title: 'Showroom Finale' },
+                    { score: 1320, draws: 7, type: 'boss', title: 'Vault Guardian' },
+                    { score: 1580, draws: 6, type: 'standard', title: 'Jackpot Parade' },
+                    { score: 1900, draws: 6, type: 'boss', title: 'Final Cage Match' },
                 ],
                 payoutTable: {
                     cherry: [{ score: 10, money: 1 }, { score: 25, money: 2 }, { score: 55, money: 4 }],
@@ -931,11 +1007,13 @@
                     { score: 200, draws: 9, type: 'standard', title: 'Meteor Drift' },
                     { score: 360, draws: 9, type: 'boss', title: 'Singularity Showdown' },
                     { score: 540, draws: 8, type: 'standard', title: 'Quantum Carousel' },
-                    { score: 760, draws: 8, type: 'standard', title: 'Aurora Overdrive' },
-                    { score: 1020, draws: 8, type: 'boss', title: 'Galactic Dealer' },
-                    { score: 1280, draws: 7, type: 'standard', title: 'Supernova Spin' },
-                    { score: 1580, draws: 7, type: 'standard', title: 'Event Horizon' },
-                    { score: 1900, draws: 7, type: 'boss', title: 'Cosmic High Roller' },
+                    { score: 760, draws: 8, type: 'boss', title: 'Gravity Lock' },
+                    { score: 940, draws: 8, type: 'standard', title: 'Aurora Overdrive' },
+                    { score: 1180, draws: 7, type: 'boss', title: 'Galactic Dealer' },
+                    { score: 1420, draws: 7, type: 'standard', title: 'Supernova Spin' },
+                    { score: 1700, draws: 7, type: 'boss', title: 'Event Horizon' },
+                    { score: 2020, draws: 6, type: 'standard', title: 'Cosmic High Roller' },
+                    { score: 2380, draws: 6, type: 'boss', title: 'Celestial Pit Boss' },
                 ],
                 payoutTable: {
                     star: [{ score: 12, money: 1 }, { score: 32, money: 3 }, { score: 80, money: 6 }],
@@ -1004,9 +1082,20 @@
             pendingSymbol: null,
             freeSpins: 0,
             autoSelecting: false,
+            autoSpinEnabled: false,
+            autoSpinSpeed: 'normal',
+            disabledJoker: null,
+            reelPenaltyActive: false,
         };
 
         let autoPlayTimer = null;
+        let autoSpinTimer = null;
+
+        const AUTO_SPIN_SPEEDS = {
+            slow: 1400,
+            normal: 900,
+            fast: 600,
+        };
 
         function loadJSON(key, fallback) {
             if (!storage) return fallback;
@@ -1164,6 +1253,7 @@
             const config = getCurrentMachineConfig();
             saveSelectedMachine(state.machine);
             cancelAutoPlay();
+            cancelAutoSpinTimer();
             state.blindIndex = 0;
             state.money = config.startingMoney;
             state.jokers = [];
@@ -1175,6 +1265,8 @@
             state.hand = [];
             state.selection = [];
             state.autoSelecting = false;
+            state.disabledJoker = null;
+            state.reelPenaltyActive = false;
             updateMachineUI();
             startBlind();
         }
@@ -1191,11 +1283,32 @@
             state.lastPayout = null;
             state.freeSpins = 0;
             state.autoSelecting = false;
+            state.disabledJoker = null;
+            state.reelPenaltyActive = false;
             cancelAutoPlay();
+            cancelAutoSpinTimer();
             const prefix = blind.type === 'boss' ? 'Boss Blind' : `Blind ${state.blindIndex + 1}`;
             const title = blind.title ? `${prefix}: ${blind.title}` : `${prefix}`;
-            state.message = `${title}. Score ${blind.score} before you run out of draws.`;
+            let message = `${title}. Score ${blind.score} before you run out of draws.`;
+            if (blind.type === 'boss') {
+                state.reelPenaltyActive = true;
+                if (state.jokers.length > 0) {
+                    const disabledIndex = Math.floor(Math.random() * state.jokers.length);
+                    state.disabledJoker = state.jokers[disabledIndex];
+                }
+                const bossNotes = [];
+                if (state.disabledJoker) {
+                    const jokerName = cardPool[state.disabledJoker]?.name || 'A joker';
+                    bossNotes.push(`${jokerName} is disabled this blind.`);
+                }
+                bossNotes.push('One reel is jammed, reducing your payouts.');
+                message = `${message} ${bossNotes.join(' ')}`.trim();
+            }
+            state.message = message;
             updateUI();
+            if (state.autoSpinEnabled) {
+                scheduleAutoSpinIfNeeded();
+            }
         }
 
         function getTotalSpinBonus() {
@@ -1212,6 +1325,73 @@
             }
         }
 
+        function getAutoSpinDelay() {
+            const delay = AUTO_SPIN_SPEEDS[state.autoSpinSpeed];
+            return typeof delay === 'number' ? delay : AUTO_SPIN_SPEEDS.normal;
+        }
+
+        function cancelAutoSpinTimer() {
+            if (autoSpinTimer !== null) {
+                clearTimeout(autoSpinTimer);
+                autoSpinTimer = null;
+            }
+        }
+
+        function scheduleAutoSpinIfNeeded() {
+            cancelAutoSpinTimer();
+            if (!state.autoSpinEnabled || state.gameOver || state.shopOpen) {
+                return;
+            }
+            if (!state.canDraw || state.drawsLeft <= 0) {
+                return;
+            }
+            const delay = getAutoSpinDelay();
+            autoSpinTimer = window.setTimeout(() => {
+                autoSpinTimer = null;
+                if (state.autoSpinEnabled && !state.gameOver && !state.shopOpen && state.canDraw && state.drawsLeft > 0) {
+                    drawHand();
+                }
+            }, delay);
+        }
+
+        function enableAutoSpin() {
+            if (state.autoSpinEnabled || state.gameOver || state.shopOpen) {
+                return;
+            }
+            state.autoSpinEnabled = true;
+            updateUIControls();
+            if (state.canDraw) {
+                drawHand();
+            } else {
+                scheduleAutoSpinIfNeeded();
+            }
+        }
+
+        function disableAutoSpin() {
+            if (!state.autoSpinEnabled) {
+                return;
+            }
+            state.autoSpinEnabled = false;
+            cancelAutoSpinTimer();
+            updateUIControls();
+        }
+
+        function toggleAutoSpin() {
+            if (state.autoSpinEnabled) {
+                disableAutoSpin();
+            } else {
+                enableAutoSpin();
+            }
+        }
+
+        function handleAutoSpinSpeedChange(event) {
+            const value = event.target.value;
+            state.autoSpinSpeed = AUTO_SPIN_SPEEDS[value] ? value : 'normal';
+            if (state.autoSpinEnabled) {
+                scheduleAutoSpinIfNeeded();
+            }
+        }
+
         function scheduleAutoPlay() {
             cancelAutoPlay();
             autoPlayTimer = window.setTimeout(() => {
@@ -1222,6 +1402,7 @@
 
         function drawHand() {
             if (!state.canDraw || state.gameOver || state.drawsLeft <= 0) return;
+            cancelAutoSpinTimer();
             const deck = shuffle([...state.reels[0], ...state.reels[1], ...state.reels[2]]);
             state.hand = [];
             const handSize = getHandSize();
@@ -1351,6 +1532,7 @@
             let payout = calculatePayout(cards);
             payout = applyJokerEffects(payout, cards);
             payout = applyMachineRewards(payout, cards);
+            payout = applyBossModifiers(payout);
 
             state.score += payout.score;
             state.money += payout.money;
@@ -1367,7 +1549,14 @@
             state.canDraw = state.drawsLeft > 0;
 
             updateUI();
-            checkBlindState();
+            const runContinues = checkBlindState();
+            if (state.autoSpinEnabled) {
+                if (runContinues) {
+                    scheduleAutoSpinIfNeeded();
+                } else {
+                    cancelAutoSpinTimer();
+                }
+            }
         }
 
         function calculatePayout(cards) {
@@ -1420,8 +1609,18 @@
 
         function applyJokerEffects(payout, cards) {
             const notes = [];
+            const bossActive = isBossBlindActive();
             state.jokers.forEach(jokerId => {
                 const joker = cardPool[jokerId];
+                if (bossActive && state.disabledJoker === jokerId) {
+                    const disabledNote = joker?.name
+                        ? `${joker.name} is disabled by the boss`
+                        : 'A joker is disabled by the boss';
+                    if (!notes.includes(disabledNote)) {
+                        notes.push(disabledNote);
+                    }
+                    return;
+                }
                 if (typeof joker?.effect === 'function') {
                     const note = joker.effect(payout, cards);
                     if (note) {
@@ -1442,24 +1641,53 @@
             return addPayoutNotes(payout, notes);
         }
 
+        function isBossBlindActive() {
+            const blinds = getBlinds();
+            const blind = blinds[state.blindIndex];
+            return blind?.type === 'boss';
+        }
+
+        function applyBossModifiers(payout) {
+            if (!isBossBlindActive()) {
+                return payout;
+            }
+            const notes = [];
+            if (state.reelPenaltyActive && payout.score > 0) {
+                const penalty = Math.ceil(payout.score / 3);
+                payout.score = Math.max(0, payout.score - penalty);
+                notes.push(`Jammed reel -${penalty} score`);
+            }
+            if (notes.length > 0) {
+                addPayoutNotes(payout, notes);
+            }
+            return payout;
+        }
+
         function checkBlindState() {
             const blinds = getBlinds();
             const blind = blinds[state.blindIndex];
+            if (!blind) {
+                endRun(true);
+                return false;
+            }
             if (state.score >= blind.score) {
                 if (state.blindIndex === blinds.length - 1) {
                     endRun(true);
                 } else {
                     openShop();
                 }
-                return;
+                return false;
             }
 
             if (state.drawsLeft <= 0 && !state.canDraw && !state.canPlay) {
                 endRun(false);
+                return false;
             }
+            return true;
         }
 
         function openShop() {
+            cancelAutoSpinTimer();
             state.shopOpen = true;
             state.canDraw = false;
             state.canPlay = false;
@@ -1563,11 +1791,14 @@
 
         function endRun(victory) {
             cancelAutoPlay();
+            disableAutoSpin();
             state.autoSelecting = false;
             state.gameOver = true;
             state.canDraw = false;
             state.canPlay = false;
             state.freeSpins = 0;
+            state.disabledJoker = null;
+            state.reelPenaltyActive = false;
             closeModal(elements.shopModal);
             const config = getCurrentMachineConfig();
             const totalBlinds = getBlinds().length;
@@ -1588,6 +1819,7 @@
             elements.endBlind.textContent = victory ? totalBlinds : Math.min(state.blindIndex + 1, totalBlinds);
             elements.endCoins.textContent = `$${state.money}`;
             openModal(elements.endModal);
+            updateUI();
         }
 
         function restartGame() {
@@ -1603,11 +1835,17 @@
             if (state.shopOpen) {
                 return 'Shop open — finish up to keep spinning';
             }
+            if (state.autoSpinEnabled && state.autoSelecting) {
+                return 'Auto spin in progress';
+            }
             if (state.autoSelecting) {
                 return 'Spinning for the best combo...';
             }
             if (state.drawsLeft === 0 && !state.canDraw && !state.canPlay) {
                 return 'No spins left';
+            }
+            if (state.autoSpinEnabled && state.canDraw) {
+                return 'Auto spin ready';
             }
             if (state.canDraw) {
                 return 'Ready to spin';
@@ -1689,11 +1927,17 @@
             const info = document.createElement('p');
             info.className = 'info-text';
             if (state.autoSelecting) {
-                info.textContent = 'The reels are spinning and picking the best combo for you...';
+                if (state.autoSpinEnabled) {
+                    info.textContent = 'Auto spin is evaluating the reels for you...';
+                } else {
+                    info.textContent = 'The reels are spinning and picking the best combo for you...';
+                }
             } else if (state.shopOpen) {
                 info.textContent = 'Finish your shopping to prepare the next spin.';
             } else if (state.drawsLeft === 0 && !state.canDraw && !state.canPlay) {
                 info.textContent = 'No spins left for this blind.';
+            } else if (state.autoSpinEnabled && state.canDraw) {
+                info.textContent = 'Auto spin will trigger the next hand shortly.';
             } else if (state.canDraw) {
                 info.textContent = 'Tap Spin Reels to let the machine work its magic.';
             } else {
@@ -1725,10 +1969,16 @@
             } else {
                 state.jokers.forEach(jokerId => {
                     const joker = cardPool[jokerId];
+                    if (!joker) return;
                     const card = document.createElement('div');
                     card.className = 'card';
                     card.style.minHeight = '120px';
-                    card.innerHTML = `<span class="card-icon">${joker.icon}</span><span class="card-name">${joker.name}</span><span class="card-desc">${joker.desc}</span>`;
+                    let description = `<span class="card-desc">${joker.desc}</span>`;
+                    if (isBossBlindActive() && state.disabledJoker === jokerId) {
+                        card.classList.add('joker-disabled');
+                        description += `<span class="card-desc boss-note">Disabled this blind</span>`;
+                    }
+                    card.innerHTML = `<span class="card-icon">${joker.icon}</span><span class="card-name">${joker.name}</span>${description}`;
                     elements.jokerTray.appendChild(card);
                 });
             }
@@ -1806,10 +2056,17 @@
         }
 
         function updateUIControls() {
-            elements.drawButton.disabled = !state.canDraw || state.gameOver;
-            if (elements.playButton) {
-                elements.playButton.disabled = true;
-                elements.playButton.hidden = true;
+            if (elements.drawButton) {
+                elements.drawButton.disabled = !state.canDraw || state.gameOver || state.autoSpinEnabled;
+            }
+            if (elements.autoSpinButton) {
+                elements.autoSpinButton.disabled = state.gameOver || state.shopOpen;
+                elements.autoSpinButton.classList.toggle('active', state.autoSpinEnabled);
+                elements.autoSpinButton.textContent = state.autoSpinEnabled ? 'Stop Auto Spin' : 'Start Auto Spin';
+            }
+            if (elements.autoSpinSpeed) {
+                elements.autoSpinSpeed.value = state.autoSpinSpeed;
+                elements.autoSpinSpeed.disabled = state.gameOver || state.shopOpen;
             }
         }
 
@@ -1906,7 +2163,8 @@
         }
 
         elements.drawButton.addEventListener('click', drawHand);
-        elements.playButton.addEventListener('click', playHand);
+        elements.autoSpinButton.addEventListener('click', toggleAutoSpin);
+        elements.autoSpinSpeed.addEventListener('change', handleAutoSpinSpeedChange);
         elements.helpButton.addEventListener('click', () => openModal(elements.helpModal));
         elements.closeHelp.addEventListener('click', () => closeModal(elements.helpModal));
         elements.restartButton.addEventListener('click', restartGame);
