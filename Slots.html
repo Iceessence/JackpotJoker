@@ -1,0 +1,2130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Jackpot Joker - Bonus Bonanza</title>
+    <style>
+        /* ------------------- */
+        /* --- GLOBAL & A11Y --- */
+        /* ------------------- */
+        :root {
+            --background-color: #1a0b2d;
+            --primary-neon: #ff00ff;
+            --secondary-neon: #00ffff;
+            --gold-neon: #ffd700;
+            --text-color: #f0e6ff;
+            --card-bg: #2c1a4b;
+            --card-border: #4f3a7a;
+            --card-shadow: 0 0 15px rgba(255, 0, 255, 0.6);
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 1rem;
+            -webkit-tap-highlight-color: transparent; /* Disable tap highlight on mobile */
+        }
+
+        /* For screen readers only */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* ------------------- */
+        /* --- MAIN LAYOUT --- */
+        /* ------------------- */
+        #game-container {
+            width: 100%;
+            max-width: 500px; /* Optimal for mobile portrait */
+            min-height: 95vh;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            background: rgba(0,0,0,0.2);
+            padding: 1rem;
+            border-radius: 15px;
+            border: 2px solid var(--primary-neon);
+            box-shadow: 0 0 20px var(--primary-neon);
+        }
+
+        header {
+            text-align: center;
+            border-bottom: 1px solid var(--secondary-neon);
+            padding-bottom: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        header .placeholder {
+            width: 40px; /* Balance the help button */
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--primary-neon);
+            text-shadow: 0 0 5px var(--primary-neon), 0 0 10px #fff;
+            margin: 0;
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            flex-grow: 1;
+        }
+        
+        /* ------------------- */
+        /* --- GAME STATS --- */
+        /* ------------------- */
+        #game-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            border: 1px solid var(--secondary-neon);
+        }
+
+        .stat-item {
+            background: var(--card-bg);
+            padding: 0.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--card-border);
+            flex-grow: 1;
+            min-width: 60px; /* Prevent shrinking too much */
+        }
+        
+        .stat-item .label {
+            font-size: 0.8rem;
+            color: var(--secondary-neon);
+            text-transform: uppercase;
+        }
+
+        .stat-item .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--text-color);
+        }
+
+        /* ------------------- */
+        /* --- JOKERS AREA --- */
+        /* ------------------- */
+        #joker-area {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            min-height: 80px;
+        }
+
+        .joker-slot {
+            background: rgba(0,0,0,0.2);
+            border: 2px dashed var(--card-border);
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            aspect-ratio: 2/3;
+        }
+
+        /* ------------------- */
+        /* --- CARD STYLING --- */
+        /* ------------------- */
+        .card {
+            background: var(--card-bg);
+            border: 2px solid var(--card-border);
+            border-radius: 8px;
+            aspect-ratio: 2/3;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 0.5rem;
+            text-align: center;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .card.symbol-card .icon {
+            font-size: clamp(1.5rem, 8vw, 2rem);
+        }
+        
+        .card.symbol-card .name {
+            font-size: clamp(0.7rem, 3vw, 0.8rem);
+            font-weight: bold;
+        }
+        
+        .card.joker-card {
+            border-color: var(--gold-neon);
+        }
+
+        .card.joker-card .name {
+            font-size: clamp(0.5rem, 2.5vw, 0.6rem);
+            font-weight: bold;
+            color: var(--gold-neon);
+        }
+        
+        .card.joker-card .desc {
+            font-size: clamp(0.4rem, 2vw, 0.5rem);
+            margin-top: 4px;
+        }
+        
+        /* Provides feedback for tap-and-hold interaction */
+        .card.held {
+            transform: scale(0.95);
+            box-shadow: none;
+        }
+
+        /* ------------------- */
+        /* --- HAND & SELECTION --- */
+        /* ------------------- */
+        #hand-area {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+            min-height: 80px; /* Placeholder height */
+            padding: 0.5rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+        }
+        
+        #hand-area .card.selected {
+            transform: translateY(-10px) scale(1.05);
+            border-color: var(--gold-neon);
+            box-shadow: 0 0 15px var(--gold-neon);
+        }
+        
+        /* ------------------- */
+        /* --- SLOT MACHINE --- */
+        /* ------------------- */
+        #slot-machine {
+            padding: 1rem;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            border: 1px solid var(--secondary-neon);
+        }
+
+        #payline {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            min-height: 120px; /* Ensure space for cards */
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--primary-neon);
+            padding-bottom: 1rem;
+        }
+
+        .payline-slot {
+            background: rgba(0,0,0,0.2);
+            border: 2px dashed var(--card-border);
+            border-radius: 8px;
+            aspect-ratio: 2/3;
+            transition: background-color 0.3s ease;
+        }
+        
+        /* Highlight for winning cards */
+        .payline-slot.highlight {
+            background-color: rgba(255, 215, 0, 0.3);
+            border-color: var(--gold-neon);
+            box-shadow: 0 0 10px var(--gold-neon);
+        }
+
+        #reels-display {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+            text-align: center;
+        }
+
+        .reel-area .reel-label {
+            color: var(--secondary-neon);
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+        
+        .reel-deck {
+            background: var(--card-bg);
+            border: 2px solid var(--card-border);
+            border-radius: 8px;
+            aspect-ratio: 2/3;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary-neon);
+            text-shadow: 0 0 5px var(--primary-neon);
+            position: relative;
+        }
+        
+        /* Card stack visual effect */
+        .reel-deck::before, .reel-deck::after {
+            content: '';
+            position: absolute;
+            width: 90%;
+            height: 100%;
+            background: var(--card-bg);
+            border: 2px solid var(--card-border);
+            border-radius: 8px;
+            z-index: -1;
+        }
+        .reel-deck::before { transform: translate(-4px, -4px); }
+        .reel-deck::after { transform: translate(4px, 4px); }
+
+        /* Card flip animation */
+        .card.is-flipping {
+            animation: flip 0.6s ease-in-out;
+        }
+
+        @keyframes flip {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(90deg); }
+            100% { transform: rotateY(0deg); }
+        }
+
+
+        /* ------------------- */
+        /* --- ACTION AREA --- */
+        /* ------------------- */
+        #action-area {
+            margin-top: auto; /* Push to bottom */
+            padding-top: 1rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .action-button {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--text-color);
+            background: linear-gradient(45deg, var(--primary-neon), var(--secondary-neon));
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease;
+            text-shadow: 0 0 5px #000;
+        }
+
+        .action-button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            color: #999;
+            box-shadow: none;
+            animation: none;
+        }
+        
+        .action-button:not(:disabled):active {
+            transform: scale(0.98);
+        }
+
+        @keyframes glowing-button {
+            0% { box-shadow: 0 0 5px var(--primary-neon); }
+            50% { box-shadow: 0 0 20px var(--secondary-neon), 0 0 25px var(--secondary-neon); }
+            100% { box-shadow: 0 0 5px var(--primary-neon); }
+        }
+
+        .action-button.glow {
+            animation: glowing-button 2s infinite ease-in-out;
+        }
+
+        #payout-message {
+            text-align: center;
+            margin-top: 0.5rem;
+            min-height: 24px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--gold-neon);
+            text-shadow: 0 0 5px var(--gold-neon);
+            transition: opacity 0.3s ease;
+        }
+
+        /* ------------------- */
+        /* --- MODALS --- */
+        /* ------------------- */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            padding: 1rem;
+        }
+
+        .modal-content {
+            background: var(--background-color);
+            padding: 1.5rem;
+            border-radius: 15px;
+            border: 2px solid var(--secondary-neon);
+            box-shadow: 0 0 20px var(--secondary-neon);
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            text-align: center;
+        }
+        
+        .modal h2 {
+            color: var(--primary-neon);
+            margin-bottom: 1rem;
+        }
+
+        .modal button {
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: bold;
+            color: var(--text-color);
+            background: var(--primary-neon);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 1.5rem;
+        }
+
+        #shop-items, #reel-selection-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .shop-item {
+            display: flex;
+            gap: 1rem;
+            background: var(--card-bg);
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+            align-items: center;
+        }
+
+        .shop-item .card {
+            flex-shrink: 0;
+            width: 70px; /* Fixed size for shop view */
+        }
+        
+        .shop-item .shop-item-info {
+            text-align: left;
+            flex-grow: 1;
+        }
+        
+        .shop-item .shop-item-info h3 {
+            color: var(--gold-neon);
+        }
+        
+        .shop-item .shop-item-buy button {
+            padding: 0.5rem 1rem;
+            margin: 0;
+            font-size: 1rem;
+        }
+        
+        .shop-item .shop-item-buy button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+        }
+        
+        #end-game-modal h3 {
+            font-size: 1.5rem;
+            color: var(--gold-neon);
+            margin: 1rem 0;
+        }
+
+
+        /* ----------------------- */
+        /* --- HELP BUTTON & MODAL --- */
+        /* ----------------------- */
+        #help-button {
+            background: none;
+            border: 1px solid var(--secondary-neon);
+            color: var(--secondary-neon);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 38px; /* Vertically center the '?' */
+        }
+        
+        #help-modal .modal-content {
+            text-align: left;
+        }
+
+        #help-modal p, #help-modal ul {
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+
+        #help-modal li {
+            margin-left: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        #help-modal strong {
+            color: var(--secondary-neon);
+        }
+
+        /* ----------------------- */
+        /* --- NEW: TOOLTIP ---    */
+        /* ----------------------- */
+        #tooltip {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.95);
+            width: 90%;
+            max-width: 350px;
+            background: var(--card-bg);
+            border: 2px solid var(--gold-neon);
+            border-radius: 15px;
+            padding: 1.5rem;
+            z-index: 200;
+            pointer-events: none; /* Let clicks pass through */
+            opacity: 0;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            box-shadow: 0 0 25px var(--gold-neon);
+        }
+
+        #tooltip.visible {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        #tooltip-title {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--gold-neon);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+        #tooltip-title .icon {
+            font-size: 2.5rem;
+        }
+        #tooltip-content {
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        #tooltip-content p {
+            margin-bottom: 0.5rem;
+        }
+        #tooltip-content strong {
+            color: var(--secondary-neon);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+        /* --- EXPANSION CODE START --- */
+        /* --- FOOTER & COLLECTIONS BUTTON --- */
+        footer {
+            padding-top: 1rem;
+            margin-top: auto;
+            border-top: 1px solid var(--secondary-neon);
+        }
+
+        #collections-button {
+            width: 100%;
+            padding: 0.75rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: var(--card-bg);
+            border: 1px solid var(--secondary-neon);
+            color: var(--secondary-neon);
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        /* --- COLLECTIONS MODAL --- */
+        .modal-nav {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-nav-button {
+            flex-grow: 1;
+            background: none;
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            border-radius: 5px;
+            margin-top: 0;
+        }
+
+        .modal-nav-button.active {
+            background: var(--primary-neon);
+            border-color: var(--primary-neon);
+            color: #fff;
+        }
+
+        .modal-tab-content {
+            text-align: left;
+        }
+        
+        .modal-tab-content h3 {
+            color: var(--secondary-neon);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        /* Stats Tab */
+        #stats-content ul {
+            list-style: none;
+            padding: 0;
+        }
+        
+        #stats-content li {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--card-border);
+        }
+        
+        #stats-content li .value {
+            color: var(--gold-neon);
+            font-weight: bold;
+        }
+
+        /* Achievements Tab */
+        #achievements-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .achievement-item {
+            background: rgba(0,0,0,0.3);
+            padding: 0.75rem;
+            border-radius: 8px;
+            border: 1px solid var(--card-border);
+        }
+        
+        .achievement-item.unlocked {
+            border-color: var(--gold-neon);
+        }
+
+        .achievement-item h4 {
+            color: var(--gold-neon);
+        }
+        
+        .achievement-item.unlocked h4 {
+            text-shadow: 0 0 5px var(--gold-neon);
+        }
+
+        .achievement-item.locked {
+            opacity: 0.6;
+        }
+
+        .achievement-item p {
+            font-size: 0.8rem;
+        }
+
+        /* Joker Compendium Tab */
+        #joker-compendium-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(65px, 1fr));
+            gap: 0.5rem;
+        }
+        
+        .compendium-joker {
+            aspect-ratio: 2/3;
+            filter: grayscale(1) brightness(0.4);
+            position: relative;
+        }
+        
+        .compendium-joker.discovered {
+            filter: none;
+        }
+        
+        .compendium-joker .card {
+            font-size: 0.5rem;
+        }
+        .compendium-joker .card .name {
+            font-size: 0.45rem;
+        }
+        .compendium-joker .card .desc {
+            display: none;
+        }
+        
+        .compendium-joker .use-count {
+            position: absolute;
+            bottom: 2px;
+            right: 4px;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 3px #000;
+        }
+        
+        /* --- WHEEL OF FORTUNE --- */
+        #wheel-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 1rem auto;
+        }
+
+        #wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 5px solid var(--gold-neon);
+            background-image: conic-gradient(
+                #ff00ff 0deg 60deg,
+                #00ffff 60deg 120deg,
+                #ffd700 120deg 180deg,
+                #ff00ff 180deg 240deg,
+                #00ffff 240deg 300deg,
+                #ffd700 300deg 360deg
+            );
+            transition: transform 5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        
+        #wheel-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 30px solid #fff;
+        }
+        
+        #wheel-rewards {
+            position: absolute;
+            top:0; left:0; width:100%; height: 100%;
+        }
+        
+        .wheel-prize {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 50%;
+            height: 50%;
+            transform-origin: 0% 0%;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        #wheel-result {
+            margin-top: 1rem;
+            font-size: 1.5rem;
+            color: var(--gold-neon);
+            min-height: 2rem;
+        }
+
+        /* --- REEL CUSTOMIZER --- */
+        #reel-customizer-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        
+        .reel-back-option {
+            border: 2px solid var(--card-border);
+            border-radius: 8px;
+            padding: 0.5rem;
+            text-align: center;
+            cursor: pointer;
+        }
+        
+        .reel-back-option.selected {
+            border-color: var(--gold-neon);
+            box-shadow: 0 0 10px var(--gold-neon);
+        }
+        
+        .reel-back-option.locked {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .reel-back-preview {
+            width: 60px;
+            height: 90px;
+            margin: 0 auto 0.5rem;
+            border: 2px solid var(--card-border);
+            border-radius: 8px;
+        }
+        
+        /* Specific reel back styles */
+        .reel-back-preview[data-back="neon-grid"] {
+             background: radial-gradient(circle, var(--primary-neon) 0%, transparent 70%),
+                         linear-gradient(var(--background-color), var(--background-color)) padding-box,
+                         repeating-linear-gradient(0deg, var(--secondary-neon) 0, var(--secondary-neon) 1px, transparent 1px, transparent 10px),
+                         repeating-linear-gradient(90deg, var(--secondary-neon) 0, var(--secondary-neon) 1px, transparent 1px, transparent 10px);
+        }
+        .reel-back-preview[data-back="gold-star"] {
+            background-color: var(--gold-neon);
+            color: var(--background-color);
+            display: flex; justify-content: center; align-items: center; font-size: 3rem;
+        }
+        
+        .reel-deck[data-back="neon-grid"] {
+            background: radial-gradient(circle, var(--primary-neon) 0%, transparent 70%),
+                         linear-gradient(var(--card-bg), var(--card-bg)) padding-box,
+                         repeating-linear-gradient(0deg, var(--secondary-neon) 0, var(--secondary-neon) 1px, transparent 1px, transparent 10px),
+                         repeating-linear-gradient(90deg, var(--secondary-neon) 0, var(--secondary-neon) 1px, transparent 1px, transparent 10px);
+        }
+        .reel-deck[data-back="gold-star"] {
+            background-color: var(--gold-neon);
+            color: var(--background-color);
+        }
+        /* --- EXPANSION CODE END --- */
+        /* --- EXPANSION 2: BONUS BONANZA CODE START --- */
+        /* Hiding old wheel elements to replace them */
+        #wheel, #wheel-rewards {
+            display: none;
+        }
+
+        /* New Rotating Wheel */
+        #rotating-wheel-container {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+            transition: transform 5s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        
+        .wheel-slice {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            clip-path: polygon(50% 50%, 50% 0%, 85.35% 14.65%, 50% 50%); /* 60 degree wedge */
+        }
+        
+        .wheel-slice-color {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            transform-origin: 50% 50%;
+        }
+
+        .wheel-slice-text {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%) rotate(-60deg);
+            font-weight: bold;
+            font-size: clamp(0.8rem, 4vw, 1rem);
+            color: var(--background-color);
+        }
+        
+        /* Relics and Free Spins UI */
+        #relic-and-jokers {
+            display: flex;
+            gap: 0.5rem;
+            align-items: stretch;
+        }
+        
+        #relic-area {
+            flex-basis: 20%;
+        }
+
+        #joker-area {
+            flex-basis: 80%;
+        }
+        
+        #relic-slot {
+            width: 100%;
+            aspect-ratio: 2/3;
+            border: 2px dashed var(--secondary-neon);
+            border-radius: 8px;
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .card.relic-card {
+            border-color: var(--secondary-neon);
+            box-shadow: 0 0 15px var(--secondary-neon);
+        }
+
+        .card.relic-card .name {
+            color: var(--secondary-neon);
+        }
+        
+        #free-spin-button {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--text-color);
+            background: linear-gradient(45deg, var(--gold-neon), #ff8c00);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            text-shadow: 0 0 5px #000;
+        }
+
+        /* Bonus Game Modal */
+        #bonus-game-cups {
+            display: flex;
+            justify-content: space-around;
+            margin: 2rem 0;
+            perspective: 800px;
+        }
+
+        .bonus-cup {
+            width: 80px;
+            height: 100px;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.5s ease-in-out;
+        }
+        
+        .cup-body {
+            width: 100%; height: 100%;
+            background: linear-gradient(145deg, #ff416c, #ff4b2b);
+            border-radius: 10px 10px 40px 40px;
+            border-bottom: 5px solid #c0213b;
+            position: absolute;
+            bottom: 0;
+            z-index: 2;
+        }
+
+        .cup-prize {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 2.5rem;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.3s 0.2s;
+        }
+        
+        .bonus-cup.reveal .cup-body {
+            transform: translateY(-40px);
+        }
+
+        .bonus-cup.reveal .cup-prize {
+            opacity: 1;
+        }
+
+        /* Animation for shuffling cups */
+        @keyframes shuffle-left {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(-110px) rotateY(180deg); }
+        }
+        @keyframes shuffle-right {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(110px) rotateY(-180deg); }
+        }
+        
+        .shuffling .bonus-cup:nth-child(1) { animation: shuffle-right 1s ease-in-out; }
+        .shuffling .bonus-cup:nth-child(2) { animation: shuffle-left 1s ease-in-out 0.5s; }
+        .shuffling .bonus-cup:nth-child(3) { animation: shuffle-right 1s ease-in-out 1s; }
+        
+        #bonus-game-message {
+            min-height: 2rem;
+            font-size: 1.2rem;
+            color: var(--gold-neon);
+            font-weight: bold;
+        }
+        /* --- EXPANSION 2: BONUS BONANZA CODE END --- */
+    </style>
+</head>
+<body>
+    
+    <div id="tooltip" role="tooltip" aria-hidden="true">
+        <h3 id="tooltip-title">
+            <span class="icon"></span>
+            <span class="name"></span>
+        </h3>
+        <div id="tooltip-content"></div>
+    </div>
+
+    <div id="game-container">
+        <header>
+            <div class="placeholder"></div>
+            <h1>Jackpot Joker</h1>
+            <button id="help-button" aria-label="Show Rules">?</button>
+        </header>
+
+        <main>
+            <section id="game-stats" aria-live="polite">
+                <div class="stat-item">
+                    <span class="label">Score</span>
+                    <span class="value" id="current-score">0 / 100</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Draws</span>
+                    <span class="value" id="spins-left">8</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Blind</span>
+                    <span class="value" id="blind-level">1</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Money</span>
+                    <span class="value" id="currency">$0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="label">Free Spins</span>
+                    <span class="value" id="free-spins-left">0</span>
+                </div>
+            </section>
+            
+            <div id="relic-and-jokers">
+                <section id="relic-area" aria-label="Active Relic">
+                    <div id="relic-slot"></div>
+                </section>
+                <section id="joker-area" aria-label="Active Jokers">
+                    <div class="joker-slot"></div>
+                    <div class="joker-slot"></div>
+                    <div class="joker-slot"></div>
+                    <div class="joker-slot"></div>
+                    <div class="joker-slot"></div>
+                </section>
+            </div>
+
+            <section id="hand-area" aria-label="Player Hand"></section>
+
+            <section id="slot-machine">
+                <div id="payline" aria-label="Payline">
+                    <div class="payline-slot" id="payline-slot-0"></div>
+                    <div class="payline-slot" id="payline-slot-1"></div>
+                    <div class="payline-slot" id="payline-slot-2"></div>
+                </div>
+                <div id="reels-display" aria-label="Reels">
+                    <div class="reel-area">
+                        <div class="reel-label">Reel 1</div>
+                        <div class="reel-deck" id="reel-deck-0">?</div>
+                    </div>
+                    <div class="reel-area">
+                        <div class="reel-label">Reel 2</div>
+                        <div class="reel-deck" id="reel-deck-1">?</div>
+                    </div>
+                    <div class="reel-area">
+                        <div class="reel-label">Reel 3</div>
+                        <div class="reel-deck" id="reel-deck-2">?</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="action-area">
+                <button id="draw-button" class="action-button">DRAW HAND</button>
+                <button id="play-hand-button" class="action-button">PLAY HAND (0/3)</button>
+            </section>
+            <div id="payout-message" aria-live="polite"></div>
+            <button id="free-spin-button" class="hidden">USE FREE SPIN</button>
+
+        </main>
+        <footer>
+            <button id="collections-button">View Collections</button>
+        </footer>
+    </div>
+
+    <div id="help-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>Rules & Objective</h2>
+            <p>
+                Your goal is to meet the target <strong>Score</strong> for the current Blind before you run out of <strong>Draws</strong>.
+            </p>
+            <ul>
+                <li>Press <strong>DRAW HAND</strong> to spend 1 Draw and get 5 new cards from your reels.</li>
+                <li><strong>Tap</strong> up to 3 cards in your hand to select them.</li>
+                <li>Press <strong>PLAY HAND</strong> to move your 3 selected cards to the payline and score points.</li>
+                <li><strong>Tap and hold</strong> any card to see its details and payouts.</li>
+                <li>After beating a blind, you'll enter a <strong>Shop</strong> to buy new Symbol and Joker cards to improve your reels.</li>
+            </ul>
+            <button id="close-help-button">Got It</button>
+        </div>
+    </div>
+
+    <div id="shop-modal" class="modal hidden">
+        <div class="modal-content">
+            <div id="fortune-wheel-container">
+                <h2>WHEEL OF FORTUNE</h2>
+                <div id="wheel-container">
+                    <div id="wheel"></div>
+                    <div id="wheel-pointer"></div>
+                    <div id="wheel-rewards"></div>
+                    <div id="rotating-wheel-container"></div>
+                    </div>
+                <div id="wheel-result" aria-live="polite"></div>
+                <button id="spin-wheel-button">SPIN THE WHEEL</button>
+            </div>
+            <div id="main-shop-content" class="hidden">
+                <h2>SHOP</h2>
+                <p>Your Money: <span id="shop-currency"></span></p>
+                <div id="shop-items"></div>
+                <div id="reel-selection" class="hidden">
+                    <h3>Add to which reel?</h3>
+                    <div id="reel-selection-buttons">
+                        <button data-reel="0">Reel 1</button>
+                        <button data-reel="1">Reel 2</button>
+                        <button data-reel="2">Reel 3</button>
+                    </div>
+                </div>
+                <button id="continue-button">Next Blind</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="end-game-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="end-game-title">Game Over</h2>
+            <h3 id="end-game-message">You didn't meet the blind!</h3>
+            <p>You reached Blind <span id="final-blind">1</span>.</p>
+            <p>High Score: <span id="final-high-score">0</span></p>
+            <button id="restart-button">Play Again</button>
+        </div>
+    </div>
+    <div id="collections-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>COLLECTIONS</h2>
+            <nav class="modal-nav">
+                <button class="modal-nav-button active" data-tab="stats-content">Stats</button>
+                <button class="modal-nav-button" data-tab="achievements-content">Achievements</button>
+                <button class="modal-nav-button" data-tab="joker-compendium-content">Jokers</button>
+                <button class="modal-nav-button" data-tab="reel-customizer-content">Reels</button>
+            </nav>
+            <div id="stats-content" class="modal-tab-content">
+                <h3>Lifetime Stats</h3>
+                <ul>
+                    <li><span>Highest Blind Reached</span><span class="value" data-stat="highBlind">0</span></li>
+                    <li><span>Highest Score in a Run</span><span class="value" data-stat="highScore">0</span></li>
+                    <li><span>Total Score Earned</span><span class="value" data-stat="totalScore">0</span></li>
+                    <li><span>Total Money Earned</span><span class="value" data-stat="totalMoney">0</span></li>
+                    <li><span>Total Spins</span><span class="value" data-stat="totalSpins">0</span></li>
+                    <li><span>Runs Played</span><span class="value" data-stat="runsPlayed">0</span></li>
+                    <li><span>Runs Won</span><span class="value" data-stat="runsWon">0</span></li>
+                </ul>
+            </div>
+            <div id="achievements-content" class="modal-tab-content hidden">
+                <h3>Achievements</h3>
+                <div id="achievements-list"></div>
+            </div>
+            <div id="joker-compendium-content" class="modal-tab-content hidden">
+                <h3>Joker Compendium</h3>
+                <div id="joker-compendium-grid"></div>
+            </div>
+            <div id="reel-customizer-content" class="modal-tab-content hidden">
+                <h3>Reel Customizer</h3>
+                <div id="reel-customizer-grid"></div>
+            </div>
+            <button id="close-collections-button">Close</button>
+        </div>
+    </div>
+    <div id="bonus-game-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2>BONUS GAME!</h2>
+            <p id="bonus-game-instruction">Find the prize! Pick a cup.</p>
+            <div id="bonus-game-cups">
+                <div class="bonus-cup" data-cup="0"><div class="cup-body"></div><div class="cup-prize"></div></div>
+                <div class="bonus-cup" data-cup="1"><div class="cup-body"></div><div class="cup-prize"></div></div>
+                <div class="bonus-cup" data-cup="2"><div class="cup-body"></div><div class="cup-prize"></div></div>
+            </div>
+            <div id="bonus-game-message"></div>
+            <button id="close-bonus-game-button" class="hidden">Continue</button>
+        </div>
+    </div>
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM ELEMENT REFERENCES ---
+        const drawButton = document.getElementById('draw-button');
+        const playHandButton = document.getElementById('play-hand-button');
+        const currentScoreEl = document.getElementById('current-score');
+        const spinsLeftEl = document.getElementById('spins-left');
+        const blindLevelEl = document.getElementById('blind-level');
+        const currencyEl = document.getElementById('currency');
+        const payoutMessageEl = document.getElementById('payout-message');
+        const jokerArea = document.getElementById('joker-area');
+        const handArea = document.getElementById('hand-area');
+        const paylineSlots = [ document.getElementById('payline-slot-0'), document.getElementById('payline-slot-1'), document.getElementById('payline-slot-2') ];
+        const reelDecks = [ document.getElementById('reel-deck-0'), document.getElementById('reel-deck-1'), document.getElementById('reel-deck-2') ];
+        // Modals
+        const shopModal = document.getElementById('shop-modal');
+        const shopCurrencyEl = document.getElementById('shop-currency');
+        const shopItemsEl = document.getElementById('shop-items');
+        const reelSelectionEl = document.getElementById('reel-selection');
+        const reelSelectionButtonsEl = document.getElementById('reel-selection-buttons');
+        const continueButton = document.getElementById('continue-button');
+        const endGameModal = document.getElementById('end-game-modal');
+        const endGameTitleEl = document.getElementById('end-game-title');
+        const endGameMessageEl = document.getElementById('end-game-message');
+        const finalBlindEl = document.getElementById('final-blind');
+        const restartButton = document.getElementById('restart-button');
+        const helpButton = document.getElementById('help-button');
+        const helpModal = document.getElementById('help-modal');
+        const closeHelpButton = document.getElementById('close-help-button');
+        // Tooltip
+        const tooltipEl = document.getElementById('tooltip');
+        const tooltipTitleIcon = tooltipEl.querySelector('#tooltip-title .icon');
+        const tooltipTitleName = tooltipEl.querySelector('#tooltip-title .name');
+        const tooltipContentEl = document.getElementById('tooltip-content');
+
+
+        // --- CARD & GAME DEFINITIONS ---
+
+        const cardPool = {
+            // SYMBOL CARDS
+            'cherry': { name: 'Cherry', id: 'cherry', type: 'symbol', icon: '🍒', desc: 'A classic low-tier symbol.' },
+            'bell': { name: 'Bell', id: 'bell', type: 'symbol', icon: '🔔', desc: 'Rings in decent payouts.' },
+            'bar': { name: 'BAR', id: 'bar', type: 'symbol', icon: '🅱️', desc: 'A solid mid-tier symbol.' },
+            'seven': { name: 'Seven', id: 'seven', type: 'symbol', icon: '7️⃣', desc: 'A rare and valuable symbol.' },
+            'diamond': { name: 'Diamond', id: 'diamond', type: 'symbol', icon: '💎', desc: 'Very rare. Doubles the entire payout if part of a win.' },
+            // JOKER CARDS
+            'jester': { name: 'Jester', id: 'jester', type: 'joker', icon: '🃏', desc: 'All winning spins grant +$2.', cost: 8, effect: (payout) => { if (payout.score > 0) payout.money += 2; return payout; } },
+            'midas': { name: 'Midas Touch', id: 'midas', type: 'joker', icon: '👑', desc: 'All BAR symbols are worth +10 score.', cost: 10, effect: (payout, payline) => { payline.forEach(card => { if(card.id === 'bar') payout.score += 10; }); return payout; }},
+            'greased_lever': { name: 'Greased Lever', id: 'greased_lever', type: 'joker', icon: '🔧', desc: '+2 spins per blind.', cost: 7, isPassive: true },
+            'clover': { name: 'Lucky Clover', id: 'clover', type: 'joker', icon: '🍀', desc: '15% chance to gain +$1 on non-winning spins.', cost: 6, effect: (payout) => { if (payout.score <= 0 && Math.random() < 0.15) { payout.money += 1; payout.specialMessage = "Lucky! +$1"; } return payout; } },
+        };
+        
+        const payoutTable = {
+            'cherry': [{ score: 5, money: 1 }, { score: 10, money: 2 }, { score: 20, money: 4 }],
+            'bell': [{ score: 0, money: 0 }, { score: 25, money: 3 }, { score: 50, money: 6 }],
+            'bar': [{ score: 0, money: 0 }, { score: 40, money: 5 }, { score: 80, money: 10 }],
+            'seven': [{ score: 0, money: 0 }, { score: 0, money: 0 }, { score: 150, money: 20 }],
+            'diamond': [{ score: 0, money: 0 }, { score: 0, money: 0 }, { score: 100, money: 15 }],
+        };
+
+        const blindDefinitions = [
+            { score: 100, spins: 8, shopSize: 2 }, { score: 250, spins: 8, shopSize: 3 }, { score: 500, spins: 7, shopSize: 3 },
+            { score: 1000, spins: 7, shopSize: 4 }, { score: 2000, spins: 6, shopSize: 4 },
+        ];
+
+        const HAND_SIZE = 5;
+
+        // --- GAME STATE ---
+        let gameState;
+        // Tooltip State
+        let tooltipTimer = null;
+        let currentHeldCardEl = null;
+
+
+        // --- CORE GAME LOGIC ---
+
+        function initGame() {
+            gameState = {
+                currentBlindIndex: 0, score: 0, money: 5, spinsLeft: 0, reels: [],
+                jokers: [], isSpinning: false, pendingSymbolPurchase: null,
+                hand: [], // NEW: Player's hand
+                selectedCardIndices: [], // NEW: Indices of selected cards in hand
+                canPlay: false,
+                canDraw: true,
+            };
+            const initialReelConfig = [ 'cherry', 'cherry', 'cherry', 'cherry', 'bar', 'bar', 'bell' ];
+            gameState.reels.push([...initialReelConfig], [...initialReelConfig], [...initialReelConfig]);
+            startBlind();
+        }
+        
+        function startBlind() {
+            const blind = blindDefinitions[gameState.currentBlindIndex];
+            gameState.score = 0;
+            let baseSpins = blind.spins;
+            if (gameState.jokers.includes('greased_lever')) baseSpins += 2;
+            gameState.spinsLeft = baseSpins;
+            gameState.canPlay = false;
+            gameState.canDraw = true;
+            gameState.hand = [];
+            gameState.selectedCardIndices = [];
+            paylineSlots.forEach(slot => slot.innerHTML = '');
+            updateUI();
+        }
+
+        function drawHand() {
+            if (!gameState.canDraw || gameState.spinsLeft <= 0) return;
+            
+            gameState.spinsLeft--;
+            gameState.canDraw = false;
+            payoutMessageEl.style.opacity = 0;
+            paylineSlots.forEach(slot => slot.innerHTML = '');
+
+            gameState.hand = [];
+            gameState.selectedCardIndices = [];
+
+            // Create a temporary deck from all reels and shuffle it
+            const combinedDeck = [...gameState.reels[0], ...gameState.reels[1], ...gameState.reels[2]];
+            shuffleArray(combinedDeck);
+
+            for (let i = 0; i < HAND_SIZE; i++) {
+                if (combinedDeck.length > 0) {
+                    gameState.hand.push(combinedDeck.pop());
+                }
+            }
+            
+            gameState.canPlay = true;
+            updateUI();
+        }
+
+        function playHand() {
+            if (!gameState.canPlay || gameState.selectedCardIndices.length !== 3) return;
+
+            gameState.canPlay = false;
+            gameState.isSpinning = true; // Use isSpinning to prevent other actions
+            updateUI();
+
+            const paylineCards = gameState.selectedCardIndices.map(index => cardPool[gameState.hand[index]]);
+
+            paylineCards.forEach((card, index) => {
+                setTimeout(() => {
+                    const cardEl = createCardElement(card);
+                    cardEl.classList.add('is-flipping');
+                    paylineSlots[index].appendChild(cardEl);
+                }, index * 200);
+            });
+
+            setTimeout(() => {
+                const payout = calculatePayout(paylineCards);
+                gameState.score += payout.score;
+                gameState.money += payout.money;
+
+                if (payout.specialMessage) {
+                    payoutMessageEl.textContent = payout.specialMessage;
+                } else if (payout.score > 0) {
+                    payoutMessageEl.textContent = `+${payout.score} Score! +$${payout.money}`;
+                } else {
+                    payoutMessageEl.textContent = 'No Win';
+                }
+                payoutMessageEl.style.opacity = 1;
+
+                // Reset for next turn
+                gameState.hand = [];
+                gameState.selectedCardIndices = [];
+                gameState.isSpinning = false;
+                gameState.canDraw = true;
+
+                updateUI();
+                checkEndConditions();
+            }, (paylineCards.length * 200) + 600);
+        }
+        
+        function selectCard(cardIndex) {
+            if (!gameState.canPlay) return;
+
+            const selectedIndex = gameState.selectedCardIndices.indexOf(cardIndex);
+            if (selectedIndex > -1) {
+                // Card is already selected, deselect it
+                gameState.selectedCardIndices.splice(selectedIndex, 1);
+            } else {
+                // Card is not selected, select it if we have space
+                if (gameState.selectedCardIndices.length < 3) {
+                    gameState.selectedCardIndices.push(cardIndex);
+                }
+            }
+            updateUI();
+        }
+
+        function calculatePayout(payline) {
+            let basePayout = { score: 0, money: 0, specialMessage: null };
+            const counts = {};
+            let hasDiamond = false;
+            let winningSymbolId = null;
+
+            payline.forEach(card => {
+                counts[card.id] = (counts[card.id] || 0) + 1;
+                if(card.id === 'diamond') hasDiamond = true;
+            });
+
+            for (const id in counts) {
+                if (payoutTable[id]) {
+                    const numMatches = counts[id];
+                    if (numMatches > 0 && payoutTable[id][numMatches - 1]) {
+                        const win = payoutTable[id][numMatches - 1];
+                        if (win.score > basePayout.score) {
+                            basePayout = { ...win, specialMessage: null };
+                            winningSymbolId = id;
+                        }
+                    }
+                }
+            }
+            
+            if (basePayout.score > 0) {
+                // Apply Diamond multiplier
+                if (hasDiamond) basePayout.score *= 2;
+                
+                // Highlight winning cards
+                payline.forEach((card, index) => {
+                    if (card.id === winningSymbolId || (hasDiamond && card.id === 'diamond')) {
+                        paylineSlots[index].classList.add('highlight');
+                    }
+                });
+                setTimeout(() => paylineSlots.forEach(slot => slot.classList.remove('highlight')), 1500);
+            }
+
+            // Apply Joker effects
+            gameState.jokers.forEach(jokerId => {
+                const joker = cardPool[jokerId];
+                if (joker && typeof joker.effect === 'function' && !joker.isPassive) {
+                    basePayout = joker.effect(basePayout, payline);
+                }
+            });
+
+            return basePayout;
+        }
+
+        function checkEndConditions() {
+            const blind = blindDefinitions[gameState.currentBlindIndex];
+            if (gameState.score >= blind.score) {
+                setTimeout(showShop, 1000);
+            } else if (gameState.spinsLeft <= 0 && gameState.canDraw) { // Only end if they can't draw anymore
+                setTimeout(() => showEndGame(false), 1000);
+            }
+        }
+        
+        function showShop() {
+            shopItemsEl.innerHTML = '';
+            reelSelectionEl.classList.add('hidden');
+            gameState.pendingSymbolPurchase = null;
+            const blind = blindDefinitions[gameState.currentBlindIndex];
+            const itemsToShow = [];
+            const availableSymbols = ['cherry', 'bar', 'seven', 'bell', 'diamond'];
+            const availableJokers = ['jester', 'midas', 'greased_lever', 'clover'];
+
+            for (let i = 0; i < blind.shopSize; i++) {
+                if (gameState.jokers.length < 5 && Math.random() < 0.3) {
+                    const jokerId = availableJokers[Math.floor(Math.random() * availableJokers.length)];
+                    if (!gameState.jokers.includes(jokerId) && !itemsToShow.some(item => item.id === jokerId)) itemsToShow.push({ ...cardPool[jokerId] });
+                } else {
+                    const symbolId = availableSymbols[Math.floor(Math.random() * availableSymbols.length)];
+                    const cost = 2 + (availableSymbols.indexOf(symbolId) + 1) * 2;
+                    itemsToShow.push({ ...cardPool[symbolId], cost });
+                }
+            }
+
+            itemsToShow.forEach(item => {
+                const itemEl = document.createElement('div'); itemEl.className = 'shop-item';
+                itemEl.innerHTML = ` ${createCardElement(item).outerHTML} <div class="shop-item-info"> <h3>${item.name} (${item.type})</h3> <p>${item.desc}</p> </div> <div class="shop-item-buy"> <button class="buy-button" data-card-id="${item.id}" data-cost="${item.cost}">$${item.cost}</button> </div> `;
+                shopItemsEl.appendChild(itemEl);
+            });
+
+            shopItemsEl.querySelectorAll('.buy-button').forEach(button => {
+                const cost = parseInt(button.dataset.cost);
+                if (gameState.money < cost) button.disabled = true;
+                button.addEventListener('click', () => buyItem(button.dataset.cardId, cost));
+            });
+            shopCurrencyEl.textContent = `$${gameState.money}`;
+            shopModal.classList.remove('hidden');
+        }
+
+        function buyItem(cardId, cost) {
+            if (gameState.money >= cost) {
+                gameState.money -= cost;
+                const card = cardPool[cardId];
+                if (card.type === 'symbol') {
+                    gameState.pendingSymbolPurchase = cardId;
+                    shopItemsEl.classList.add('hidden');
+                    reelSelectionEl.classList.remove('hidden');
+                } else if (card.type === 'joker') {
+                    gameState.jokers.push(cardId);
+                    const button = shopItemsEl.querySelector(`.buy-button[data-card-id="${cardId}"]`);
+                    if(button) button.disabled = true;
+                }
+                updateUI(); shopCurrencyEl.textContent = `$${gameState.money}`;
+            }
+        }
+        
+        function addSymbolToReel(reelIndex) {
+            if (gameState.pendingSymbolPurchase) {
+                gameState.reels[reelIndex].push(gameState.pendingSymbolPurchase);
+                const button = shopItemsEl.querySelector(`.buy-button[data-card-id="${gameState.pendingSymbolPurchase}"]`);
+                if(button) button.disabled = true;
+                gameState.pendingSymbolPurchase = null;
+                reelSelectionEl.classList.add('hidden');
+                shopItemsEl.classList.remove('hidden');
+            }
+        }
+        
+        function continueToNextBlind() {
+            gameState.currentBlindIndex++;
+            shopModal.classList.add('hidden');
+            if (gameState.currentBlindIndex >= blindDefinitions.length) {
+                showEndGame(true);
+            } else { startBlind(); }
+        }
+
+        function showEndGame(isVictory) {
+            if (isVictory) { endGameTitleEl.textContent = "YOU WIN!"; endGameMessageEl.textContent = "You conquered the casino!";
+            } else { endGameTitleEl.textContent = "GAME OVER"; endGameMessageEl.textContent = "You didn't meet the blind."; }
+            finalBlindEl.textContent = gameState.currentBlindIndex + 1;
+            endGameModal.classList.remove('hidden');
+        }
+
+        // --- UI & UTILITY FUNCTIONS ---
+
+        function updateUI() {
+            const blind = blindDefinitions[gameState.currentBlindIndex];
+            currentScoreEl.textContent = `${gameState.score} / ${blind.score}`;
+            spinsLeftEl.textContent = gameState.spinsLeft;
+            blindLevelEl.textContent = gameState.currentBlindIndex + 1;
+            currencyEl.textContent = `$${gameState.money}`;
+
+            const jokerSlots = jokerArea.querySelectorAll('.joker-slot');
+            jokerSlots.forEach((slot, index) => {
+                slot.innerHTML = '';
+                if (gameState.jokers[index]) slot.appendChild(createCardElement(cardPool[gameState.jokers[index]]));
+            });
+            reelDecks.forEach((deck, index) => { deck.textContent = gameState.reels[index].length; });
+
+            // Update Hand UI
+            handArea.innerHTML = '';
+            gameState.hand.forEach((cardId, index) => {
+                const card = cardPool[cardId];
+                const cardEl = createCardElement(card);
+                if (gameState.selectedCardIndices.includes(index)) {
+                    cardEl.classList.add('selected');
+                }
+                cardEl.addEventListener('click', () => selectCard(index));
+                handArea.appendChild(cardEl);
+            });
+
+            // Update button states
+            drawButton.disabled = !gameState.canDraw || gameState.spinsLeft <= 0 || gameState.isSpinning;
+            playHandButton.disabled = !gameState.canPlay || gameState.selectedCardIndices.length !== 3 || gameState.isSpinning;
+            playHandButton.textContent = `PLAY HAND (${gameState.selectedCardIndices.length}/3)`;
+
+            drawButton.classList.toggle('glow', gameState.canDraw && gameState.spinsLeft > 0);
+            playHandButton.classList.toggle('glow', gameState.canPlay && gameState.selectedCardIndices.length === 3);
+        }
+
+        function createCardElement(card) {
+            const el = document.createElement('div');
+            el.className = `card ${card.type}-card`;
+            el.dataset.cardId = card.id; // Essential for tooltip
+            if (card.type === 'symbol') { el.innerHTML = `<span class="icon">${card.icon}</span><span class="name">${card.name}</span>`;
+            } else { el.innerHTML = `<span class="icon">${card.icon}</span><span class="name">${card.name}</span><p class="desc">${card.desc}</p>`; }
+            addTooltipEvents(el); // Attach tooltip listeners
+            return el;
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; }
+        }
+        
+        // --- NEW: TOOLTIP SYSTEM ---
+
+        function addTooltipEvents(element) {
+            element.addEventListener('pointerdown', (e) => {
+                currentHeldCardEl = e.currentTarget;
+                currentHeldCardEl.classList.add('held');
+                tooltipTimer = setTimeout(() => {
+                    const cardId = e.currentTarget.dataset.cardId;
+                    if (cardId) showTooltip(cardId);
+                }, 500); 
+            });
+
+            element.addEventListener('pointerup', cancelTooltip);
+            element.addEventListener('pointerleave', cancelTooltip);
+        }
+
+        function cancelTooltip() {
+            clearTimeout(tooltipTimer);
+            if (currentHeldCardEl) {
+                currentHeldCardEl.classList.remove('held');
+                currentHeldCardEl = null;
+            }
+            hideTooltip();
+        }
+
+        function showTooltip(cardId) {
+            const card = allCardsPool()[cardId] || relicPool[cardId]; // check all pools
+            if (!card) return;
+
+            tooltipTitleIcon.textContent = card.icon;
+            tooltipTitleName.textContent = card.name;
+            
+            let contentHTML = `<p>${card.desc}</p>`;
+            if (card.type === 'symbol' && payoutTable[card.id]) {
+                contentHTML += '<strong>Payouts:</strong><ul>';
+                payoutTable[card.id].forEach((payout, index) => {
+                    if (payout.score > 0) {
+                        contentHTML += `<li><strong>${index + 1}x Match:</strong> ${payout.score} Score, $${payout.money}</li>`;
+                    }
+                });
+                contentHTML += '</ul>';
+            }
+
+            tooltipContentEl.innerHTML = contentHTML;
+            tooltipEl.classList.add('visible');
+            tooltipEl.setAttribute('aria-hidden', 'false');
+        }
+
+        function hideTooltip() {
+            tooltipEl.classList.remove('visible');
+            tooltipEl.setAttribute('aria-hidden', 'true');
+        }
+
+
+        // --- EVENT LISTENERS ---
+        drawButton.addEventListener('click', drawHand);
+        playHandButton.addEventListener('click', playHand);
+        restartButton.addEventListener('click', () => { endGameModal.classList.add('hidden'); initGame(); });
+        continueButton.addEventListener('click', continueToNextBlind);
+        reelSelectionButtonsEl.addEventListener('click', (e) => {
+            if (e.target.matches('button')) addSymbolToReel(parseInt(e.target.dataset.reel));
+        });
+        helpButton.addEventListener('click', () => helpModal.classList.remove('hidden'));
+        closeHelpButton.addEventListener('click', () => helpModal.classList.add('hidden'));
+
+        // --- INITIALIZE GAME ---
+        //initGame(); // This will be called by expansion code
+        /* --- EXPANSION CODE START --- */
+        // --- NEW DOM ELEMENTS ---
+        const finalHighScoreEl = document.getElementById('final-high-score');
+        const collectionsButton = document.getElementById('collections-button');
+        const collectionsModal = document.getElementById('collections-modal');
+        const closeCollectionsButton = document.getElementById('close-collections-button');
+        const modalNavButtons = collectionsModal.querySelectorAll('.modal-nav-button');
+        const modalTabs = collectionsModal.querySelectorAll('.modal-tab-content');
+        const wheelContainer = document.getElementById('fortune-wheel-container');
+        const mainShopContent = document.getElementById('main-shop-content');
+        const spinWheelButton = document.getElementById('spin-wheel-button');
+        const wheelEl = document.getElementById('wheel');
+        const wheelRewardsEl = document.getElementById('wheel-rewards');
+        const wheelResultEl = document.getElementById('wheel-result');
+
+        // --- EXPANSION GAME DATA & STATE ---
+        let playerData = {};
+        let isWheelSpinning = false;
+        
+        const expansionCardPool = {
+            'piggy_bank': { name: 'Piggy Bank', id: 'piggy_bank', type: 'joker', icon: '🐷', desc: 'Start each blind with +$5.', cost: 9, isPassive: true },
+            'scrap_code': { name: 'Scrap Code', id: 'scrap_code', type: 'joker', icon: '🤖', desc: '+10 score for each non-winning spin.', cost: 8, effect: (payout) => { if (payout.score <= 0) { payout.score += 10; payout.specialMessage = "+10 Scrap Score"; } return payout; } },
+        };
+        
+        const achievements = {
+            'first_win': { name: 'First Victory!', desc: 'Win a run by beating Blind 5.', unlocked: false, condition: (stats) => stats.runsWon >= 1 },
+            'endless_journey': { name: 'An Endless Journey', desc: 'Enter Endless Mode for the first time.', unlocked: false, condition: (stats) => stats.highBlind > 5 },
+            'high_roller': { name: 'High Roller', desc: 'Reach a score of 5000 in a single run.', unlocked: false, condition: (stats) => stats.highScore >= 5000 },
+            'money_bags': { name: 'Moneybags', desc: 'Earn a total of $1000 across all runs.', unlocked: false, condition: (stats) => stats.totalMoney >= 1000 },
+            'collector': { name: 'Collector', desc: 'Discover 5 unique Jokers.', unlocked: false, condition: (stats) => Object.keys(stats.jokersDiscovered).length >= 5 },
+        };
+
+        const wheelPrizes = [
+            { text: '+$10', type: 'money', value: 10 }, { text: 'Unlock Reel', type: 'unlock', value: 'neon-grid' },
+            { text: '+$15', type: 'money', value: 15 }, { text: 'Free Joker', type: 'joker' },
+            { text: '+$25', type: 'money', value: 25 }, { text: 'Unlock Reel', type: 'unlock', value: 'gold-star' }
+        ];
+
+        // --- PERSISTENT DATA HANDLING ---
+        function loadPlayerData() {
+            const savedData = localStorage.getItem('jackpotJokerPlayerData');
+            if (savedData) {
+                playerData = JSON.parse(savedData);
+                // Ensure all keys exist to prevent errors on updates
+                if (!playerData.achievements) playerData.achievements = {};
+                if (!playerData.jokersDiscovered) playerData.jokersDiscovered = {};
+                if (!playerData.unlockedReelBacks) playerData.unlockedReelBacks = ['default'];
+                if (!playerData.selectedReelBack) playerData.selectedReelBack = 'default';
+            } else {
+                playerData = {
+                    highBlind: 0, highScore: 0, totalScore: 0, totalMoney: 0, totalSpins: 0, runsPlayed: 0, runsWon: 0,
+                    jokersDiscovered: {},
+                    achievements: {},
+                    unlockedReelBacks: ['default'], selectedReelBack: 'default',
+                };
+            }
+        }
+
+        function savePlayerData() {
+            localStorage.setItem('jackpotJokerPlayerData', JSON.stringify(playerData));
+        }
+
+        // --- STATS & ACHIEVEMENTS LOGIC ---
+        function updateStat(stat, value) {
+            if (typeof playerData[stat] === 'number') {
+                if (stat.startsWith('high') && value > playerData[stat]) {
+                    playerData[stat] = value;
+                } else if (!stat.startsWith('high')) {
+                    playerData[stat] += value;
+                }
+            }
+            checkAchievements();
+            savePlayerData();
+        }
+
+        function checkAchievements() {
+            for (const id in achievements) {
+                if (!playerData.achievements[id] && achievements[id].condition(playerData)) {
+                    playerData.achievements[id] = true;
+                    // Could add a visual notification here in the future
+                    console.log(`Achievement Unlocked: ${achievements[id].name}`);
+                }
+            }
+        }
+        
+        function trackJoker(jokerId) {
+            if (!playerData.jokersDiscovered[jokerId]) {
+                playerData.jokersDiscovered[jokerId] = { count: 0 };
+            }
+            playerData.jokersDiscovered[jokerId].count++;
+            updateStat('jokersDiscoveredCount', 0); // Trigger achievement check
+        }
+
+        // --- WHEEL OF FORTUNE LOGIC ---
+        function setupWheel() {
+            wheelRewardsEl.innerHTML = '';
+            wheelPrizes.forEach((prize, i) => {
+                const angle = (360 / wheelPrizes.length) * i;
+                const prizeEl = document.createElement('div');
+                prizeEl.className = 'wheel-prize';
+                prizeEl.style.transform = `rotate(${angle + 30}deg) translate(50%)`;
+                prizeEl.textContent = prize.text;
+                wheelRewardsEl.appendChild(prizeEl);
+            });
+        }
+
+        function spinTheWheel() {
+            if (isWheelSpinning) return;
+            isWheelSpinning = true;
+            spinWheelButton.disabled = true;
+            wheelResultEl.textContent = 'Spinning...';
+            
+            const randomSpins = 4 + Math.random() * 4; // 4 to 8 full spins
+            const prizeIndex = Math.floor(Math.random() * wheelPrizes.length);
+            const prizeAngle = (360 / wheelPrizes.length) * prizeIndex;
+            const targetAngle = (360 * randomSpins) - prizeAngle;
+            
+            wheelEl.style.transform = `rotate(${targetAngle}deg)`;
+            
+            setTimeout(() => {
+                const prize = wheelPrizes[prizeIndex];
+                wheelResultEl.textContent = `You won: ${prize.text}!`;
+                applyWheelPrize(prize);
+                isWheelSpinning = false;
+                setTimeout(() => { // Transition to shop
+                    wheelContainer.classList.add('hidden');
+                    mainShopContent.classList.remove('hidden');
+                }, 2000);
+            }, 5500); // 500ms longer than CSS transition
+        }
+        
+        function applyWheelPrize(prize) {
+            if (prize.type === 'money') {
+                gameState.money += prize.value;
+            } else if (prize.type === 'joker') {
+                const availableJokers = Object.keys(cardPool).filter(id => cardPool[id].type === 'joker' && !gameState.jokers.includes(id));
+                if (availableJokers.length > 0) {
+                    const randomJokerId = availableJokers[Math.floor(Math.random() * availableJokers.length)];
+                    gameState.jokers.push(randomJokerId);
+                    trackJoker(randomJokerId);
+                }
+            } else if (prize.type === 'unlock') {
+                if (!playerData.unlockedReelBacks.includes(prize.value)) {
+                    playerData.unlockedReelBacks.push(prize.value);
+                }
+            }
+            updateUI();
+            savePlayerData();
+        }
+
+        // Use MutationObserver to detect when shop opens
+        const shopObserver = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.attributeName === 'class' && !shopModal.classList.contains('hidden')) {
+                    // Shop was opened, show wheel first
+                    wheelContainer.classList.remove('hidden');
+                    mainShopContent.classList.add('hidden');
+                    wheelResultEl.textContent = '';
+                    spinWheelButton.disabled = false;
+                    wheelEl.style.transition = 'none';
+                    wheelEl.style.transform = 'rotate(0deg)';
+                    setTimeout(() => { wheelEl.style.transition = 'transform 5s cubic-bezier(0.25, 1, 0.5, 1)'; }, 100);
+                }
+            });
+        });
+        shopObserver.observe(shopModal, { attributes: true });
+
+
+        // --- COLLECTIONS MODAL LOGIC ---
+        function openCollectionsModal() {
+            renderCollectionsModal();
+            collectionsModal.classList.remove('hidden');
+        }
+        
+        function renderCollectionsModal() {
+            // Render Stats
+            document.querySelector('[data-stat="highBlind"]').textContent = playerData.highBlind;
+            document.querySelector('[data-stat="highScore"]').textContent = playerData.highScore.toLocaleString();
+            document.querySelector('[data-stat="totalScore"]').textContent = playerData.totalScore.toLocaleString();
+            document.querySelector('[data-stat="totalMoney"]').textContent = `$${playerData.totalMoney.toLocaleString()}`;
+            document.querySelector('[data-stat="totalSpins"]').textContent = playerData.totalSpins.toLocaleString();
+            document.querySelector('[data-stat="runsPlayed"]').textContent = playerData.runsPlayed;
+            document.querySelector('[data-stat="runsWon"]').textContent = playerData.runsWon;
+            
+            // Render Achievements
+            const achievementsListEl = document.getElementById('achievements-list');
+            achievementsListEl.innerHTML = '';
+            for (const id in achievements) {
+                const isUnlocked = playerData.achievements[id];
+                const ach = achievements[id];
+                const el = document.createElement('div');
+                el.className = `achievement-item ${isUnlocked ? 'unlocked' : 'locked'}`;
+                el.innerHTML = `<h4>${ach.name} ${isUnlocked ? '✔️' : '🔒'}</h4><p>${ach.desc}</p>`;
+                achievementsListEl.appendChild(el);
+            }
+            
+            // Render Joker Compendium
+            const jokerGridEl = document.getElementById('joker-compendium-grid');
+            jokerGridEl.innerHTML = '';
+            const allJokers = {...cardPool, ...expansionCardPool};
+            Object.values(allJokers).filter(c => c.type === 'joker').forEach(joker => {
+                const isDiscovered = !!playerData.jokersDiscovered[joker.id];
+                const el = document.createElement('div');
+                el.className = `compendium-joker ${isDiscovered ? 'discovered' : ''}`;
+                el.innerHTML = createCardElement(joker).outerHTML + (isDiscovered ? `<span class="use-count">x${playerData.jokersDiscovered[joker.id].count}</span>` : '');
+                jokerGridEl.appendChild(el);
+            });
+        }
+
+        // --- NEW EVENT LISTENERS ---
+        collectionsButton.addEventListener('click', openCollectionsModal);
+        closeCollectionsButton.addEventListener('click', () => collectionsModal.classList.add('hidden'));
+        spinWheelButton.addEventListener('click', spinTheWheel);
+
+        modalNavButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                modalNavButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                modalTabs.forEach(tab => tab.classList.add('hidden'));
+                document.getElementById(button.dataset.tab).classList.remove('hidden');
+            });
+        });
+        
+        // --- HOOKS INTO ORIGINAL GAME LOGIC ---
+        
+        // Additive listener for Endless Mode
+        continueButton.addEventListener('click', () => {
+            if (gameState.currentBlindIndex >= blindDefinitions.length) {
+                // The original listener has already triggered the "win" screen. We override it.
+                endGameModal.classList.add('hidden'); // Hide the win modal
+                
+                // Set up the next endless blind
+                const newBlindScore = blindDefinitions[blindDefinitions.length - 1].score * Math.pow(1.5, gameState.currentBlindIndex - blindDefinitions.length + 1);
+                const newSpins = Math.max(4, blindDefinitions[blindDefinitions.length - 1].spins - (gameState.currentBlindIndex - blindDefinitions.length));
+                blindDefinitions.push({ score: Math.round(newBlindScore), spins: newSpins, shopSize: 5});
+                updateStat('runsWon', 1);
+                startBlind();
+            }
+        });
+        
+        // Additive logic run on game start
+        const originalInit = initGame;
+        initGame = () => {
+            originalInit();
+            updateStat('runsPlayed', 1);
+        }
+        
+        // Re-initialize game on first load
+        loadPlayerData();
+        setupWheel();
+        // initGame(); // Called by next expansion
+        /* --- EXPANSION CODE END --- */
+        /* --- EXPANSION 2: BONUS BONANZA CODE START --- */
+        // --- NEW DOM ELEMENTS ---
+        const freeSpinsLeftEl = document.getElementById('free-spins-left');
+        const freeSpinButton = document.getElementById('free-spin-button');
+        const relicSlotEl = document.getElementById('relic-slot');
+        const rotatingWheelContainer = document.getElementById('rotating-wheel-container');
+        const bonusGameModal = document.getElementById('bonus-game-modal');
+        const bonusGameCups = document.getElementById('bonus-game-cups');
+        const bonusGameMessageEl = document.getElementById('bonus-game-message');
+        const bonusGameInstruction = document.getElementById('bonus-game-instruction');
+        const closeBonusGameButton = document.getElementById('close-bonus-game-button');
+
+        // --- NEW GAME DATA & STATE ---
+        const bonusBonanzaCardPool = {
+            'bonus_chest': { name: 'Bonus Chest', id: 'bonus_chest', type: 'symbol', icon: '📦', desc: 'Land 3 to trigger a Bonus Game!' },
+            'free_spin_token': { name: 'Free Spin', id: 'free_spin_token', type: 'symbol', icon: '🎟️', desc: 'Grants one free spin.' },
+            'treasure_hunter': { name: 'Treasure Hunter', id: 'treasure_hunter', type: 'joker', icon: '🗺️', cost: 10, desc: 'Adds 3 Bonus Chest cards to each reel.' },
+            'token_finder': { name: 'Token Finder', id: 'token_finder', type: 'joker', icon: '🎫', cost: 8, desc: 'Adds 3 Free Spin Token cards to each reel.' },
+            'lucky_charm': { name: 'Lucky Charm', id: 'lucky_charm', type: 'joker', icon: '✨', cost: 7, desc: 'Every spin grants a flat +5 score.' },
+        };
+        const relicPool = {
+            'loaded_die': { name: 'Loaded Die', id: 'loaded_die', type: 'relic', icon: '🎲', desc: 'The first spin of every blind is a guaranteed 3-of-a-kind Cherry win.' },
+            'gold_magnet': { name: 'Gold Magnet', id: 'gold_magnet', type: 'relic', icon: '🧲', desc: 'All money payouts are increased by $1.' },
+        };
+        const bonusGamePrizes = [
+            { type: 'money', value: 50, icon: '💰' }, { type: 'joker', icon: '🃏' }, { type: 'relic', icon: '💎' }
+        ];
+        let bonusGameActive = false;
+
+        // --- EXPANSION INITIALIZATION ---
+        function initBonusBonanza() {
+            gameState.freeSpins = 0;
+            gameState.currentRelic = null;
+            updateUIBonusBonanza();
+        }
+        
+        const originalInitWithBonanza = initGame;
+        initGame = () => {
+            originalInitWithBonanza();
+            initBonusBonanza();
+        };
+
+        // --- NEW CORE LOGIC (FREE SPINS, RELICS, BONUS GAMES) ---
+        function useFreeSpin() {
+            if (gameState.isSpinning || gameState.freeSpins <= 0) return;
+            gameState.freeSpins--;
+            // This is a simplified spin that doesn't use a main spin
+            gameState.isSpinning = true;
+            payoutMessageEl.style.opacity = 0;
+            paylineSlots.forEach(slot => slot.innerHTML = '');
+            updateUIBonusBonanza();
+            
+            const payline = [];
+            const tempDeck = [...gameState.reels[0], ...gameState.reels[1], ...gameState.reels[2]];
+            shuffleArray(tempDeck);
+
+            for(let i=0; i<3; i++) {
+                if(tempDeck.length > 0) payline.push(allCardsPool()[tempDeck.pop()]);
+            }
+            
+            payline.forEach((card, index) => {
+                setTimeout(() => {
+                    const cardEl = createCardElement(card);
+                    cardEl.classList.add('is-flipping');
+                    paylineSlots[index].appendChild(cardEl);
+                }, index * 200);
+            });
+
+            setTimeout(() => {
+                let payout = calculatePayout(payline);
+                payout = applyPostSpinEffects(payout, payline); // Apply expansion effects
+                gameState.score += payout.score;
+                gameState.money += payout.money;
+                
+                if (payout.specialMessage) payoutMessageEl.textContent = payout.specialMessage;
+                else if (payout.score > 0) payoutMessageEl.textContent = `+${payout.score} Score! +$${payout.money}`;
+                else payoutMessageEl.textContent = 'No Win';
+                payoutMessageEl.style.opacity = 1;
+                
+                gameState.isSpinning = false;
+                updateUI();
+                updateUIBonusBonanza();
+                checkEndConditions();
+            }, (payline.length * 200) + 600);
+        }
+        
+        function startBonusGame() {
+            if (bonusGameActive) return;
+            bonusGameActive = true;
+            bonusGameModal.classList.remove('hidden');
+            closeBonusGameButton.classList.add('hidden');
+            bonusGameMessageEl.textContent = '';
+            bonusGameInstruction.textContent = "Watch the prize... I'm going to shuffle!";
+            
+            const cups = bonusGameCups.querySelectorAll('.bonus-cup');
+            const prizeIndex = Math.floor(Math.random() * 3);
+            const prize = bonusGamePrizes[Math.floor(Math.random() * bonusGamePrizes.length)];
+            
+            cups.forEach((cup, i) => {
+                cup.classList.remove('reveal');
+                cup.querySelector('.cup-prize').textContent = i === prizeIndex ? prize.icon : '💨';
+                cup.dataset.prize = i === prizeIndex ? JSON.stringify(prize) : 'none';
+            });
+            
+            // Show the prize briefly
+            cups[prizeIndex].classList.add('reveal');
+            
+            setTimeout(() => {
+                cups[prizeIndex].classList.remove('reveal');
+                bonusGameInstruction.textContent = "Shuffling...";
+                // Shuffle
+                setTimeout(() => {
+                    bonusGameCups.classList.add('shuffling');
+                    // After shuffling, enable clicks
+                    setTimeout(() => {
+                        bonusGameCups.classList.remove('shuffling');
+                        bonusGameInstruction.textContent = "Pick a cup!";
+                        bonusGameCups.addEventListener('click', handleCupClick, { once: true });
+                    }, 2500);
+                }, 500);
+            }, 2000);
+        }
+
+        function handleCupClick(e) {
+            const chosenCup = e.target.closest('.bonus-cup');
+            if (!chosenCup) return;
+            bonusGameInstruction.textContent = "Let's see...";
+            const prizeData = chosenCup.dataset.prize;
+            
+            bonusGameCups.querySelectorAll('.bonus-cup').forEach(c => c.classList.add('reveal'));
+
+            if (prizeData !== 'none') {
+                const prize = JSON.parse(prizeData);
+                bonusGameMessageEl.textContent = `You won! ${prize.icon}`;
+                applyBonusPrize(prize);
+            } else {
+                bonusGameMessageEl.textContent = "Oof, better luck next time!";
+            }
+            closeBonusGameButton.classList.remove('hidden');
+        }
+
+        function applyBonusPrize(prize) {
+            if (prize.type === 'money') gameState.money += prize.value;
+            if (prize.type === 'joker') {
+                const availableJokers = Object.keys(allCardsPool()).filter(id => allCardsPool()[id].type === 'joker' && !gameState.jokers.includes(id));
+                if (availableJokers.length > 0) gameState.jokers.push(availableJokers[Math.floor(Math.random() * availableJokers.length)]);
+            }
+            if (prize.type === 'relic' && !gameState.currentRelic) {
+                const availableRelics = Object.keys(relicPool);
+                gameState.currentRelic = availableRelics[Math.floor(Math.random() * availableRelics.length)];
+            }
+        }
+
+        // --- NEW UI & UTILITY FUNCTIONS ---
+        function allCardsPool() {
+            return { ...cardPool, ...expansionCardPool, ...bonusBonanzaCardPool };
+        }
+        
+        function updateUIBonusBonanza() {
+            freeSpinsLeftEl.textContent = gameState.freeSpins || 0;
+            relicSlotEl.innerHTML = '';
+            if (gameState.currentRelic) {
+                relicSlotEl.appendChild(createCardElement(relicPool[gameState.currentRelic]));
+            }
+        }
+        
+        setInterval(() => {
+            if (!gameState || gameState.isSpinning) return;
+            if (gameState.freeSpins > 0 && gameState.canDraw) {
+                drawButton.classList.add('hidden');
+                playHandButton.classList.add('hidden');
+                freeSpinButton.classList.remove('hidden');
+            } else {
+                drawButton.classList.remove('hidden');
+                playHandButton.classList.remove('hidden');
+                freeSpinButton.classList.add('hidden');
+            }
+        }, 250);
+        
+        function setupRotatingWheel() {
+            rotatingWheelContainer.innerHTML = '';
+            const sliceAngle = 360 / wheelPrizes.length;
+            const sliceColors = ['var(--primary-neon)', 'var(--secondary-neon)', 'var(--gold-neon)'];
+
+            wheelPrizes.forEach((prize, i) => {
+                const slice = document.createElement('div');
+                slice.className = 'wheel-slice';
+                slice.style.transform = `rotate(${sliceAngle * i}deg)`;
+                
+                const colorDiv = document.createElement('div');
+                colorDiv.className = 'wheel-slice-color';
+                colorDiv.style.backgroundColor = sliceColors[i % sliceColors.length];
+                
+                const textDiv = document.createElement('div');
+                textDiv.className = 'wheel-slice-text';
+                textDiv.textContent = prize.text;
+
+                slice.appendChild(colorDiv);
+                slice.appendChild(textDiv);
+                rotatingWheelContainer.appendChild(slice);
+            });
+        }
+        const originalSpinTheWheel = spinTheWheel;
+        spinTheWheel = () => {
+             const randomSpins = 4 + Math.random() * 4;
+             const prizeIndex = Math.floor(Math.random() * wheelPrizes.length);
+             const prizeAngle = (360 / wheelPrizes.length) * (prizeIndex + 0.5); // Center on slice
+             const targetAngle = (360 * randomSpins) + prizeAngle;
+             rotatingWheelContainer.style.transform = `rotate(${targetAngle}deg)`;
+             // Remainder of logic is similar, just a visual change. We'll call the original for rewards.
+             originalSpinTheWheel();
+        };
+
+        // --- ADDITIVE HOOKS INTO GAME LOGIC ---
+        function applyPostSpinEffects(payout, payline) {
+             let bonusCount = 0;
+             payline.forEach(card => {
+                if (card.id === 'bonus_chest') bonusCount++;
+                if (card.id === 'free_spin_token') gameState.freeSpins++;
+             });
+             if (bonusCount >= 3) { setTimeout(startBonusGame, 500); }
+             if (gameState.jokers.includes('lucky_charm')) payout.score += 5;
+             return payout;
+        }
+
+        const originalPlayHand = playHand;
+        playHand = () => {
+            originalPlayHand();
+            // This timeout lets the original function's timeout finish first
+            setTimeout(() => {
+                const paylineCards = paylineSlots.map(slot => slot.querySelector('.card')?.dataset.cardId);
+                if(paylineCards.some(id => id)) {
+                   applyPostSpinEffects({}, paylineCards.map(id => allCardsPool()[id]));
+                   updateUIBonusBonanza();
+                }
+            }, 1500);
+        };
+
+
+        const originalBuyItem = buyItem;
+        buyItem = (cardId, cost) => {
+            const allCards = allCardsPool();
+            if (allCards[cardId] && allCards[cardId].type === 'joker') {
+                 if (gameState.money >= cost) {
+                    gameState.money -= cost;
+                    gameState.jokers.push(cardId);
+                    if (cardId === 'treasure_hunter') gameState.reels.forEach(r => r.push('bonus_chest','bonus_chest','bonus_chest'));
+                    if (cardId === 'token_finder') gameState.reels.forEach(r => r.push('free_spin_token','free_spin_token','free_spin_token'));
+                    const button = shopItemsEl.querySelector(`.buy-button[data-card-id="${cardId}"]`);
+                    if(button) button.disabled = true;
+                }
+            } else {
+                originalBuyItem(cardId, cost);
+            }
+        };
+
+        // --- FINAL SETUP CALLS ---
+        setupRotatingWheel();
+        freeSpinButton.addEventListener('click', useFreeSpin);
+        closeBonusGameButton.addEventListener('click', () => {
+            bonusGameActive = false;
+            bonusGameModal.classList.add('hidden');
+            updateUI();
+            updateUIBonusBonanza();
+        });
+        initGame(); // Call the new hooked initGame
+        /* --- EXPANSION 2: BONUS BONANZA CODE END --- */
+    });
+    </script>
+</body>
+</html>
