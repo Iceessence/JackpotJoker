@@ -680,8 +680,8 @@
 
         <section class="panel" aria-labelledby="hand-title">
             <div class="panel-header">
-                <h2 id="hand-title">Your Hand</h2>
-                <span class="chip" id="selection-status">Select 3 cards</span>
+                <h2 id="hand-title">Slot Machine</h2>
+                <span class="chip" id="selection-status">Ready to spin</span>
             </div>
             <div id="hand-grid" aria-live="polite"></div>
             <div id="card-details"></div>
@@ -698,23 +698,23 @@
         <div id="message-bar" aria-live="polite"></div>
 
         <footer id="action-bar">
-            <button id="draw-button" class="action-button" type="button">Draw Hand</button>
-            <button id="play-button" class="action-button" type="button">Play Selected</button>
+            <button id="draw-button" class="action-button" type="button">Spin Reels</button>
+            <button id="play-button" class="action-button" type="button" hidden>Auto Play</button>
         </footer>
     </div>
 
     <div class="modal" id="help-modal" hidden>
         <div class="modal-card">
             <h2>How to Play</h2>
-            <p>Select exactly three cards from your hand to play the payline. Matching symbols award score and coins. Diamonds double winning scores.</p>
-            <p>The selection chip above your hand tells you how many cards are locked in and when you're ready to play.</p>
+            <p>Press <strong>Spin Reels</strong> to let the slot machine handle the hand for you. Behind the scenes it draws five cards and secretly keeps the best combo.</p>
+            <p>The selection chip above the slot machine lets you know when the reels are spinning and when you're ready for the next blind.</p>
             <p>After each blind you survive, visit the shop to add new symbols or jokers to your build. Jokers provide powerful bonuses every hand.</p>
             <p>Every third blind is a <strong>Boss Blind</strong> with tougher targets. Beat them all to finish the run. Defeating the final boss unlocks the <strong>Nova Cascade</strong> machine, packed with bonus games and free-spin combos.</p>
             <p>The joker panel tracks every joker you've ever recruited, so chase new synergies and fill out your collection.</p>
             <ul>
-                <li>Tap <strong>Draw Hand</strong> to spend a draw and reveal 5 cards.</li>
-                <li>Tap cards to select or deselect them. You need exactly three selected to play.</li>
-                <li>Tap <strong>Play Selected</strong> to score the hand.</li>
+                <li>Tap <strong>Spin Reels</strong> to spend a draw and let the machine work.</li>
+                <li>The machine secretly evaluates five cards and automatically keeps the best three for you.</li>
+                <li>Watch the payline to see what the reels delivered.</li>
                 <li>Reach the target score before your draws run out to move on.</li>
             </ul>
             <div class="modal-actions">
@@ -1003,7 +1003,10 @@
             shopChoices: [],
             pendingSymbol: null,
             freeSpins: 0,
+            autoSelecting: false,
         };
+
+        let autoPlayTimer = null;
 
         function loadJSON(key, fallback) {
             if (!storage) return fallback;
@@ -1160,6 +1163,7 @@
         function startGame() {
             const config = getCurrentMachineConfig();
             saveSelectedMachine(state.machine);
+            cancelAutoPlay();
             state.blindIndex = 0;
             state.money = config.startingMoney;
             state.jokers = [];
@@ -1170,6 +1174,7 @@
             state.freeSpins = 0;
             state.hand = [];
             state.selection = [];
+            state.autoSelecting = false;
             updateMachineUI();
             startBlind();
         }
@@ -1185,6 +1190,8 @@
             state.lastPayline = [];
             state.lastPayout = null;
             state.freeSpins = 0;
+            state.autoSelecting = false;
+            cancelAutoPlay();
             const prefix = blind.type === 'boss' ? 'Boss Blind' : `Blind ${state.blindIndex + 1}`;
             const title = blind.title ? `${prefix}: ${blind.title}` : `${prefix}`;
             state.message = `${title}. Score ${blind.score} before you run out of draws.`;
@@ -1196,6 +1203,21 @@
                 const joker = cardPool[jokerId];
                 return bonus + (joker.spinBonus || 0);
             }, 0);
+        }
+
+        function cancelAutoPlay() {
+            if (autoPlayTimer !== null) {
+                clearTimeout(autoPlayTimer);
+                autoPlayTimer = null;
+            }
+        }
+
+        function scheduleAutoPlay() {
+            cancelAutoPlay();
+            autoPlayTimer = window.setTimeout(() => {
+                autoPlayTimer = null;
+                autoPlayBestHand();
+            }, 550);
         }
 
         function drawHand() {
@@ -1213,8 +1235,10 @@
             if (state.freeSpins > 0) {
                 state.freeSpins -= 1;
             }
-            state.message = `Select exactly ${getSelectionLimit()} cards to play.`;
+            state.autoSelecting = true;
+            state.message = 'Spinning the reels...';
             updateUI();
+            scheduleAutoPlay();
         }
 
         function toggleSelection(index) {
@@ -1231,8 +1255,97 @@
             updateUIControls();
         }
 
+        function autoPlayBestHand() {
+            if (!state.canPlay || state.gameOver) {
+                state.autoSelecting = false;
+                updateSelectionStatus();
+                updateUIControls();
+                return;
+            }
+
+            const limit = getSelectionLimit();
+            if (state.hand.length < limit) {
+                state.autoSelecting = false;
+                updateSelectionStatus();
+                updateUIControls();
+                return;
+            }
+
+            const best = findBestAutoSelection(limit);
+            if (best && Array.isArray(best.indices) && best.indices.length === limit) {
+                state.selection = best.indices.slice();
+            } else {
+                state.selection = Array.from({ length: limit }, (_, index) => index).slice(0, limit);
+            }
+
+            updateSelectionStatus();
+            updateUIControls();
+            playHand();
+        }
+
+        function findBestAutoSelection(limit) {
+            const indices = Array.from({ length: state.hand.length }, (_, index) => index);
+            let best = null;
+            const combo = [];
+
+            const evaluate = () => {
+                const cards = combo.map(idx => cardPool[state.hand[idx]]).filter(Boolean);
+                if (cards.length !== limit) {
+                    return;
+                }
+                const payout = calculatePayout(cards) || { score: 0, money: 0 };
+                const score = Number.isFinite(payout.score) ? payout.score : 0;
+                const money = Number.isFinite(payout.money) ? payout.money : 0;
+                const diamondCount = cards.filter(card => card.id === 'diamond').length;
+                const uniqueSymbols = new Set(cards.map(card => card.id)).size;
+                const freeSpinCount = cards.filter(card => card.id === 'free_spin').length;
+                const bonusChipCount = cards.filter(card => card.id === 'bonus_chip').length;
+                const potentialExtras = (freeSpinCount >= 2 ? freeSpinCount : 0) + (bonusChipCount >= 3 ? bonusChipCount : 0);
+                const candidate = {
+                    indices: combo.slice(),
+                    score,
+                    money,
+                    diamondCount,
+                    uniqueSymbols,
+                    potentialExtras,
+                };
+                if (!best || isBetterAutoSelection(candidate, best)) {
+                    best = candidate;
+                }
+            };
+
+            const choose = (start) => {
+                if (combo.length === limit) {
+                    evaluate();
+                    return;
+                }
+                for (let i = start; i < indices.length; i++) {
+                    combo.push(indices[i]);
+                    choose(i + 1);
+                    combo.pop();
+                }
+            };
+
+            choose(0);
+            return best;
+        }
+
+        function isBetterAutoSelection(candidate, current) {
+            if (!current) return true;
+            if (candidate.score !== current.score) return candidate.score > current.score;
+            if (candidate.money !== current.money) return candidate.money > current.money;
+            if (candidate.potentialExtras !== current.potentialExtras) return candidate.potentialExtras > current.potentialExtras;
+            if (candidate.diamondCount !== current.diamondCount) return candidate.diamondCount > current.diamondCount;
+            if (candidate.uniqueSymbols !== current.uniqueSymbols) return candidate.uniqueSymbols < current.uniqueSymbols;
+            const candidateKey = candidate.indices.join(',');
+            const currentKey = current.indices.join(',');
+            return candidateKey < currentKey;
+        }
+
         function playHand() {
             if (!state.canPlay || state.selection.length !== getSelectionLimit() || state.gameOver) return;
+            cancelAutoPlay();
+            state.autoSelecting = false;
             const orderedSelection = [...state.selection].sort((a, b) => a - b);
             const cards = orderedSelection.map(idx => cardPool[state.hand[idx]]);
             let payout = calculatePayout(cards);
@@ -1449,6 +1562,8 @@
         }
 
         function endRun(victory) {
+            cancelAutoPlay();
+            state.autoSelecting = false;
             state.gameOver = true;
             state.canDraw = false;
             state.canPlay = false;
@@ -1482,31 +1597,31 @@
         }
 
         function getSelectionStatusText() {
-            if (state.hand.length === 0) {
-                if (state.gameOver) {
-                    return 'Run complete';
-                }
-                if (state.canDraw) {
-                    return 'Draw a hand to begin';
-                }
-                return state.drawsLeft === 0 ? 'No draws left' : 'Waiting for next draw';
+            if (state.gameOver) {
+                return 'Run complete';
             }
-
-            const selected = state.selection.length;
-            const limit = getSelectionLimit();
-            if (selected === 0) {
-                return `Select ${limit} cards`;
+            if (state.shopOpen) {
+                return 'Shop open — finish up to keep spinning';
             }
-            if (selected < limit) {
-                const remaining = limit - selected;
-                return `${selected} selected — ${remaining} more`;
+            if (state.autoSelecting) {
+                return 'Spinning for the best combo...';
             }
-            return 'Ready! Tap Play Selected';
+            if (state.drawsLeft === 0 && !state.canDraw && !state.canPlay) {
+                return 'No spins left';
+            }
+            if (state.canDraw) {
+                return 'Ready to spin';
+            }
+            if (!state.canDraw && state.canPlay) {
+                return 'Optimizing your spin...';
+            }
+            return 'Reels cooling down';
         }
 
         function updateSelectionStatus() {
             elements.selectionStatus.textContent = getSelectionStatusText();
-            elements.selectionStatus.classList.toggle('ready', state.selection.length === getSelectionLimit());
+            const ready = !state.gameOver && !state.autoSelecting && state.canDraw;
+            elements.selectionStatus.classList.toggle('ready', ready);
         }
 
         function updateHandSelectionStyles() {
@@ -1571,53 +1686,33 @@
 
         function renderHand() {
             elements.handGrid.innerHTML = '';
-            if (state.hand.length === 0) {
-                const empty = document.createElement('p');
-                empty.className = 'info-text';
-                empty.textContent = state.canDraw ? 'Tap Draw Hand to see your next cards.' : 'Play a hand to draw again.';
-                elements.handGrid.appendChild(empty);
-                elements.cardDetails.textContent = '';
-                return;
+            const info = document.createElement('p');
+            info.className = 'info-text';
+            if (state.autoSelecting) {
+                info.textContent = 'The reels are spinning and picking the best combo for you...';
+            } else if (state.shopOpen) {
+                info.textContent = 'Finish your shopping to prepare the next spin.';
+            } else if (state.drawsLeft === 0 && !state.canDraw && !state.canPlay) {
+                info.textContent = 'No spins left for this blind.';
+            } else if (state.canDraw) {
+                info.textContent = 'Tap Spin Reels to let the machine work its magic.';
+            } else {
+                info.textContent = 'The slot machine is getting ready for the next spin.';
             }
-
-            state.hand.forEach((cardId, index) => {
-                const card = cardPool[cardId];
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'card hand-card';
-                button.dataset.index = index;
-                button.innerHTML = `<span class="card-icon">${card.icon}</span><span class="card-name">${card.name}</span><span class="card-desc">${card.desc}</span>`;
-                if (state.selection.includes(index)) {
-                    button.classList.add('selected');
-                }
-                button.addEventListener('click', () => toggleSelection(index));
-                button.addEventListener('focus', () => showCardDetails(card));
-                button.addEventListener('mouseenter', () => showCardDetails(card));
-                elements.handGrid.appendChild(button);
-            });
-
-            if (state.selection.length === 0 && state.hand.length > 0) {
-                showCardDetails(cardPool[state.hand[0]]);
-            }
+            elements.handGrid.appendChild(info);
+            elements.cardDetails.textContent = 'The machine automatically plays the strongest set of cards each spin.';
         }
 
         function showCardDetails(card) {
             if (!card) {
-                elements.cardDetails.textContent = '';
+                elements.cardDetails.textContent = 'The machine automatically plays the strongest set of cards each spin.';
                 return;
             }
             elements.cardDetails.textContent = `${card.name}: ${card.desc}`;
         }
 
         function updateSelectionDetails() {
-            const latest = state.selection[state.selection.length - 1];
-            if (typeof latest === 'number') {
-                showCardDetails(cardPool[state.hand[latest]]);
-            } else if (state.hand.length > 0) {
-                showCardDetails(cardPool[state.hand[0]]);
-            } else {
-                showCardDetails(null);
-            }
+            showCardDetails(null);
         }
 
         function renderJokers() {
@@ -1712,7 +1807,10 @@
 
         function updateUIControls() {
             elements.drawButton.disabled = !state.canDraw || state.gameOver;
-            elements.playButton.disabled = !state.canPlay || state.selection.length !== getSelectionLimit() || state.gameOver;
+            if (elements.playButton) {
+                elements.playButton.disabled = true;
+                elements.playButton.hidden = true;
+            }
         }
 
         function updateShopUI() {
