@@ -199,6 +199,13 @@
             letter-spacing: 0.06em;
         }
 
+        .chip.ready {
+            background: rgba(255, 123, 255, 0.18);
+            border-color: rgba(255, 123, 255, 0.45);
+            color: var(--primary);
+            box-shadow: 0 0 14px rgba(255, 123, 255, 0.22);
+        }
+
         #reel-summary {
             display: flex;
             gap: var(--space-sm);
@@ -622,6 +629,7 @@
         <div class="modal-card">
             <h2>How to Play</h2>
             <p>Select exactly three cards from your hand to play the payline. Matching symbols award score and coins. Diamonds double winning scores.</p>
+            <p>The selection chip above your hand tells you how many cards are locked in and when you're ready to play.</p>
             <p>After each blind you survive, visit the shop to add new symbols or jokers to your build. Jokers provide powerful bonuses every hand.</p>
             <ul>
                 <li>Tap <strong>Draw Hand</strong> to spend a draw and reveal 5 cards.</li>
@@ -851,6 +859,8 @@
             } else if (state.selection.length < SELECTION_LIMIT) {
                 state.selection.push(index);
             }
+            updateSelectionStatus();
+            updateHandSelectionStyles();
             updateSelectionDetails();
             updateUIControls();
         }
@@ -1068,13 +1078,52 @@
             startGame();
         }
 
+        function getSelectionStatusText() {
+            if (state.hand.length === 0) {
+                if (state.gameOver) {
+                    return 'Run complete';
+                }
+                if (state.canDraw) {
+                    return 'Draw a hand to begin';
+                }
+                return state.drawsLeft === 0 ? 'No draws left' : 'Waiting for next draw';
+            }
+
+            const selected = state.selection.length;
+            if (selected === 0) {
+                return `Select ${SELECTION_LIMIT} cards`;
+            }
+            if (selected < SELECTION_LIMIT) {
+                const remaining = SELECTION_LIMIT - selected;
+                return `${selected} selected — ${remaining} more`;
+            }
+            return 'Ready! Tap Play Selected';
+        }
+
+        function updateSelectionStatus() {
+            elements.selectionStatus.textContent = getSelectionStatusText();
+            elements.selectionStatus.classList.toggle('ready', state.selection.length === SELECTION_LIMIT);
+        }
+
+        function updateHandSelectionStyles() {
+            const buttons = elements.handGrid.querySelectorAll('.hand-card');
+            buttons.forEach(button => {
+                const index = Number(button.dataset.index);
+                if (state.selection.includes(index)) {
+                    button.classList.add('selected');
+                } else {
+                    button.classList.remove('selected');
+                }
+            });
+        }
+
         function updateUI() {
             const blind = blinds[state.blindIndex];
             elements.scoreValue.textContent = `${state.score} / ${blind.score}`;
             elements.drawsValue.textContent = state.drawsLeft;
             elements.blindValue.textContent = state.blindIndex + 1;
             elements.moneyValue.textContent = `$${state.money}`;
-            elements.selectionStatus.textContent = `${state.selection.length} / ${SELECTION_LIMIT} selected`;
+            updateSelectionStatus();
 
             renderHand();
             renderJokers();
